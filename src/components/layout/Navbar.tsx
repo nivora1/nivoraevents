@@ -63,10 +63,10 @@ const Navbar = () => {
         </nav>
 
         <Link
-          to="/services"
+          to="/list-your-service"
           className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:opacity-90 transition-opacity"
         >
-          Explore Services
+          List Your Service
         </Link>
 
         <button
@@ -99,10 +99,10 @@ const Navbar = () => {
               </NavLink>
             ))}
             <Link
-              to="/services"
+              to="/list-your-service"
               className="mt-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium"
             >
-              Explore Services
+              List Your Service
             </Link>
           </div>
         </div>
