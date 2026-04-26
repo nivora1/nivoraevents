@@ -38,17 +38,6 @@ const Index = () => {
                 </a>
               </div>
 
-              <div className="mt-12 flex items-center gap-8 text-sm">
-                <div>
-                  <p className="font-serif text-2xl text-foreground">200+</p>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mt-1">Vetted vendors</p>
-                </div>
-                <div className="h-10 w-px bg-border" />
-                <div>
-                  <p className="font-serif text-2xl text-foreground">1.2k+</p>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider mt-1">Happy couples</p>
-                </div>
-              </div>
             </div>
 
             <div className="relative">
@@ -154,14 +143,12 @@ const Index = () => {
                 List your services and get high-quality leads from couples
                 actively planning their wedding.
               </p>
-              <a
-                href="https://wa.me/910000000000?text=Hi%20Nivora%2C%20I%27d%20like%20to%20list%20my%20service."
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/list-your-service"
                 className="mt-8 inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-7 py-3.5 text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 List Your Service <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
           </div>
         </div>
