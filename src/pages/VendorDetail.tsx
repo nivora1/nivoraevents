@@ -2,6 +2,7 @@ import { Link, useParams, Navigate } from "react-router-dom";
 import { vendors } from "@/data/vendors";
 import { Check, MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { buildBookingWhatsAppUrl } from "@/lib/contact";
 
 const VendorDetail = () => {
   const { id } = useParams();
@@ -10,10 +11,7 @@ const VendorDetail = () => {
 
   if (!vendor) return <Navigate to="/services" replace />;
 
-  const whatsappMsg = encodeURIComponent(
-    `Hi, I'm interested in booking ${vendor.name} for my event.`
-  );
-  const whatsappUrl = `https://wa.me/910000000000?text=${whatsappMsg}`;
+  const whatsappUrl = buildBookingWhatsAppUrl(vendor.name);
 
   const serviceLabel = vendor.service === "photography" ? "Photographers" : "Caterers";
 
