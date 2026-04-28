@@ -29,7 +29,7 @@ const Navbar = () => {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
+        "sticky top-0 z-50 w-full transition-all duration-500 ease-out animate-fade-down",
         scrolled
           ? "bg-background/85 backdrop-blur-md border-b border-border shadow-soft"
           : "bg-background/60 backdrop-blur-sm"
@@ -37,10 +37,10 @@ const Navbar = () => {
     >
       <div className="container-narrow flex items-center justify-between h-16 md:h-20">
         <Link to="/" className="flex items-center gap-2 group">
-          <span className="font-serif text-2xl tracking-tight text-foreground">
+          <span className="font-serif text-2xl tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary">
             Nivora
           </span>
-          <span className="h-1.5 w-1.5 rounded-full bg-secondary group-hover:scale-125 transition-transform" />
+          <span className="h-1.5 w-1.5 rounded-full bg-secondary transition-transform duration-300 group-hover:scale-150" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-10">
@@ -51,14 +51,26 @@ const Navbar = () => {
               end={l.to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "text-sm font-medium transition-colors relative py-1",
+                  "group/nav text-sm font-medium transition-colors relative py-1",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )
               }
             >
-              {l.label}
+              {({ isActive }) => (
+                <>
+                  {l.label}
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute left-0 -bottom-0.5 h-px w-full origin-left bg-primary transition-transform duration-500 ease-out",
+                      isActive
+                        ? "scale-x-100"
+                        : "scale-x-0 group-hover/nav:scale-x-100"
+                    )}
+                  />
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -67,14 +79,14 @@ const Navbar = () => {
           href={VENDOR_APPLICATION_FORM_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:opacity-90 transition-opacity"
+          className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all duration-300"
         >
           List Your Service
         </a>
 
         <button
           aria-label="Toggle menu"
-          className="md:hidden p-2 -mr-2 text-foreground"
+          className="md:hidden p-2 -mr-2 text-foreground transition-transform duration-300 active:scale-90"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -82,16 +94,17 @@ const Navbar = () => {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-border bg-background">
+        <div className="md:hidden border-t border-border bg-background animate-fade-down">
           <div className="container-narrow py-4 flex flex-col gap-1">
-            {links.map((l) => (
+            {links.map((l, i) => (
               <NavLink
                 key={l.to}
                 to={l.to}
                 end={l.to === "/"}
+                style={{ animationDelay: `${i * 60}ms` }}
                 className={({ isActive }) =>
                   cn(
-                    "py-3 px-2 rounded-md text-sm font-medium",
+                    "py-3 px-2 rounded-md text-sm font-medium transition-colors animate-fade-up",
                     isActive
                       ? "text-primary bg-primary-soft"
                       : "text-foreground hover:bg-muted"
@@ -105,7 +118,8 @@ const Navbar = () => {
               href={VENDOR_APPLICATION_FORM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium"
+              className="mt-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium animate-fade-up"
+              style={{ animationDelay: `${links.length * 60}ms` }}
             >
               List Your Service
             </a>
