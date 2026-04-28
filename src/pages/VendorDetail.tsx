@@ -305,7 +305,31 @@ const VendorDetail = () => {
 
               {isCatering && menu.length > 0 && (
                 <>
+              {isPhotography && selectedPackage && (
+                <>
                   <div className="mt-6 h-px bg-border" />
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Selected package
+                    </p>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <span className="text-sm font-medium text-foreground">
+                        {selectedPackage.name}
+                      </span>
+                      <span className="font-serif text-xl text-primary whitespace-nowrap">
+                        ₹{selectedPackage.price.toLocaleString("en-IN")}
+                        {selectedPackage.priceLabel && (
+                          <span className="text-muted-foreground text-sm font-normal font-sans">
+                            {selectedPackage.priceLabel}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="mt-6 h-px bg-border" />
                   <div className="mt-6">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
                       Selected items
