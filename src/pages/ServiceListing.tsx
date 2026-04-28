@@ -38,36 +38,54 @@ const ServiceListing = () => {
           <p className="mt-4 text-lg text-muted-foreground">{meta.subtitle}</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {filtered.map((v) => (
-            <article
-              key={v.id}
-              className="group flex flex-col overflow-hidden rounded-2xl bg-card border border-border shadow-soft hover:shadow-card transition-all"
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+            <h2 className="font-serif text-2xl text-foreground">
+              Vendors coming soon
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
+              We're carefully onboarding vendors for this category. Check back
+              shortly — or reach out if you'd like to be notified.
+            </p>
+            <Link
+              to="/services"
+              className="mt-7 inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
             >
-              <div className="aspect-[4/3] overflow-hidden">
-                <img
-                  src={v.image}
-                  alt={v.name}
-                  loading="lazy"
-                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-xl text-foreground">{v.name}</h3>
-                <p className="mt-1 text-sm font-medium text-secondary">{v.priceRange}</p>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">
-                  {v.shortDescription}
-                </p>
-                <Link
-                  to={`/vendors/${v.id}`}
-                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  View Details <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
+              Back to services
+            </Link>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {filtered.map((v) => (
+              <article
+                key={v.id}
+                className="group flex flex-col overflow-hidden rounded-2xl bg-card border border-border shadow-soft hover:shadow-card transition-all"
+              >
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src={v.image}
+                    alt={v.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="text-xl text-foreground">{v.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-secondary">{v.priceRange}</p>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">
+                    {v.shortDescription}
+                  </p>
+                  <Link
+                    to={`/vendors/${v.id}`}
+                    className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    View Details <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VENDOR_APPLICATION_FORM_URL } from "@/lib/contact";
 
 const links = [
   { to: "/", label: "Home" },
@@ -62,12 +63,14 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <Link
-          to="/list-your-service"
+        <a
+          href={VENDOR_APPLICATION_FORM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:opacity-90 transition-opacity"
         >
           List Your Service
-        </Link>
+        </a>
 
         <button
           aria-label="Toggle menu"
@@ -98,12 +101,14 @@ const Navbar = () => {
                 {l.label}
               </NavLink>
             ))}
-            <Link
-              to="/list-your-service"
+            <a
+              href={VENDOR_APPLICATION_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium"
             >
               List Your Service
-            </Link>
+            </a>
           </div>
         </div>
       )}

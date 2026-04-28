@@ -1,19 +1,38 @@
 import { Link, useParams, Navigate } from "react-router-dom";
 import { vendors } from "@/data/vendors";
 import { Check, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const VendorDetail = () => {
   const { id } = useParams();
   const vendor = vendors.find((v) => v.id === id);
   const [activeImg, setActiveImg] = useState(0);
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
 
   if (!vendor) return <Navigate to="/services" replace />;
 
-  const whatsappUrl = buildBookingWhatsAppUrl(vendor.name);
+  const isCatering = vendor.service === "catering";
+  const menu = vendor.menu ?? [];
 
-  const serviceLabel = vendor.service === "photography" ? "Photographers" : "Caterers";
+  const selected = useMemo(
+    () => menu.filter((m) => selectedItems[m.id]),
+    [menu, selectedItems]
+  );
+  const total = selected.reduce((sum, m) => sum + m.price, 0);
+
+  const whatsappUrl = buildBookingWhatsAppUrl(
+    vendor.name,
+    isCatering && selected.length > 0
+      ? { items: selected.map((s) => s.name), total }
+      : undefined
+  );
+
+  const serviceLabel = isCatering ? "Caterers" : "Photographers";
+
+  const toggleItem = (itemId: string) =>
+    setSelectedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
 
   return (
     <section className="py-12 md:py-20">
@@ -30,12 +49,13 @@ const VendorDetail = () => {
 
         <div className="mb-10">
           <span className="text-xs uppercase tracking-[0.2em] text-secondary font-semibold">
-            {serviceLabel.replace("s", "")}
+            {serviceLabel.replace(/s$/, "")}
           </span>
           <h1 className="mt-3 text-4xl md:text-5xl text-foreground text-balance">
             {vendor.name}
           </h1>
           <p className="mt-3 text-lg font-medium text-primary">{vendor.priceRange}</p>
+          <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
         </div>
 
         {/* Gallery */}
@@ -85,6 +105,40 @@ const VendorDetail = () => {
                 ))}
               </ul>
             </div>
+
+            {/* Catering menu */}
+            {isCatering && menu.length > 0 && (
+              <div>
+                <h2 className="text-2xl text-foreground mb-2">Menu</h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Select items to build your custom quote.
+                </p>
+                <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+                  {menu.map((item) => {
+                    const checked = !!selectedItems[item.id];
+                    return (
+                      <li key={item.id}>
+                        <label
+                          htmlFor={`menu-${item.id}`}
+                          className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors"
+                        >
+                          <Checkbox
+                            id={`menu-${item.id}`}
+                            checked={checked}
+                            onCheckedChange={() => toggleItem(item.id)}
+                          />
+                          <span className="flex-1 text-sm text-foreground">{item.name}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            ₹{item.price.toLocaleString("en-IN")}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-3 text-xs text-muted-foreground italic">*Prices are negotiable</p>
+              </div>
+            )}
           </div>
 
           {/* Booking card */}
@@ -92,6 +146,41 @@ const VendorDetail = () => {
             <div className="sticky top-28 rounded-2xl border border-border bg-card p-7 shadow-card">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">Price range</p>
               <p className="mt-1 font-serif text-2xl text-foreground">{vendor.priceRange}</p>
+              <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
+
+              {isCatering && menu.length > 0 && (
+                <>
+                  <div className="mt-6 h-px bg-border" />
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Selected items
+                    </p>
+                    {selected.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        No items selected yet.
+                      </p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {selected.map((s) => (
+                          <li key={s.id} className="flex justify-between text-sm">
+                            <span className="text-foreground">{s.name}</span>
+                            <span className="text-muted-foreground">
+                              ₹{s.price.toLocaleString("en-IN")}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                      <span className="text-sm font-medium text-foreground">Total</span>
+                      <span className="font-serif text-xl text-primary">
+                        ₹{total.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div className="mt-6 h-px bg-border" />
               <p className="mt-6 text-sm text-muted-foreground">
                 Reach out to {vendor.name} directly via WhatsApp. Our team will assist with availability and the best deal.
