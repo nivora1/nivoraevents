@@ -1,7 +1,7 @@
 export const WHATSAPP_NUMBER = "919113292362";
 
 export const VENDOR_APPLICATION_FORM_URL =
-  "https://forms.gle/nCAbRLeVFvq7DbEz5";
+  "https://forms.gle/4HPrXKNym7SBwy7HA";
 
 export const buildBookingWhatsAppUrl = (
   vendorName: string,
