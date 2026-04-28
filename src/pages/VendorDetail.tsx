@@ -4,17 +4,28 @@ import { Check, MessageCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const VendorDetail = () => {
   const { id } = useParams();
   const vendor = vendors.find((v) => v.id === id);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(
+    vendor?.packages?.[0]?.id
+  );
 
   if (!vendor) return <Navigate to="/services" replace />;
 
   const isCatering = vendor.service === "catering";
+  const isPhotography = vendor.service === "photography";
   const menu = vendor.menu ?? [];
+  const packages = vendor.packages ?? [];
 
   const selected = useMemo(
     () => menu.filter((m) => selectedItems[m.id]),
@@ -22,12 +33,16 @@ const VendorDetail = () => {
   );
   const total = selected.reduce((sum, m) => sum + m.price, 0);
 
-  const whatsappUrl = buildBookingWhatsAppUrl(
-    vendor.name,
-    isCatering && selected.length > 0
+  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+
+  const whatsappUrl = buildBookingWhatsAppUrl(vendor.name, {
+    ...(isCatering && selected.length > 0
       ? { items: selected.map((s) => s.name), total }
-      : undefined
-  );
+      : {}),
+    ...(isPhotography && selectedPackage
+      ? { packageName: selectedPackage.name, packagePrice: selectedPackage.price }
+      : {}),
+  });
 
   const serviceLabel = isCatering ? "Caterers" : "Photographers";
 
@@ -105,6 +120,65 @@ const VendorDetail = () => {
                 ))}
               </ul>
             </div>
+
+            {/* Photography packages */}
+            {isPhotography && packages.length > 0 && (
+              <div>
+                <h2 className="text-2xl text-foreground mb-2">Packages</h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Select a package to include in your booking enquiry.
+                </p>
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={selectedPackageId}
+                  onValueChange={(v) => setSelectedPackageId(v || undefined)}
+                  className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
+                >
+                  {packages.map((pkg) => {
+                    const isSelected = selectedPackageId === pkg.id;
+                    return (
+                      <AccordionItem
+                        key={pkg.id}
+                        value={pkg.id}
+                        className={`border-b-0 px-5 transition-colors ${
+                          isSelected ? "bg-primary-soft/40" : ""
+                        }`}
+                      >
+                        <AccordionTrigger className="hover:no-underline py-5">
+                          <div className="flex flex-1 items-center justify-between gap-4 pr-3">
+                            <div className="flex items-center gap-3 text-left">
+                              <span
+                                className={`h-4 w-4 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : "border-muted-foreground/40"
+                                }`}
+                              />
+                              <span className="text-sm font-medium text-foreground">
+                                {pkg.name}
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold text-primary whitespace-nowrap">
+                              ₹{pkg.price.toLocaleString("en-IN")}
+                              {pkg.priceLabel && (
+                                <span className="text-muted-foreground font-normal">
+                                  {pkg.priceLabel}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-7 pr-3">
+                          {pkg.description}
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+                <p className="mt-3 text-xs text-muted-foreground italic">*Prices are negotiable</p>
+              </div>
+            )}
 
             {/* Catering menu */}
             {isCatering && menu.length > 0 && (
@@ -231,7 +305,31 @@ const VendorDetail = () => {
 
               {isCatering && menu.length > 0 && (
                 <>
+              {isPhotography && selectedPackage && (
+                <>
                   <div className="mt-6 h-px bg-border" />
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Selected package
+                    </p>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <span className="text-sm font-medium text-foreground">
+                        {selectedPackage.name}
+                      </span>
+                      <span className="font-serif text-xl text-primary whitespace-nowrap">
+                        ₹{selectedPackage.price.toLocaleString("en-IN")}
+                        {selectedPackage.priceLabel && (
+                          <span className="text-muted-foreground text-sm font-normal font-sans">
+                            {selectedPackage.priceLabel}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="mt-6 h-px bg-border" />
                   <div className="mt-6">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
                       Selected items
