@@ -52,17 +52,17 @@ const VendorDetail = () => {
   return (
     <section className="py-12 md:py-20">
       <div className="container-narrow">
-        <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2 flex-wrap">
-          <Link to="/" className="hover:text-primary">Home</Link>
+        <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2 flex-wrap animate-fade-down">
+          <Link to="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
-          <Link to="/services" className="hover:text-primary">Services</Link>
+          <Link to="/services" className="hover:text-primary transition-colors">Services</Link>
           <span>/</span>
-          <Link to={`/services/${vendor.service}`} className="hover:text-primary">{serviceLabel}</Link>
+          <Link to={`/services/${vendor.service}`} className="hover:text-primary transition-colors">{serviceLabel}</Link>
           <span>/</span>
           <span className="text-foreground">{vendor.name}</span>
         </nav>
 
-        <div className="mb-10">
+        <div className="mb-10 animate-fade-up">
           <span className="text-xs uppercase tracking-[0.2em] text-secondary font-semibold">
             {serviceLabel.replace(/s$/, "")}
           </span>
