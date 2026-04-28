@@ -113,30 +113,111 @@ const VendorDetail = () => {
                 <p className="text-sm text-muted-foreground mb-5">
                   Select items to build your custom quote.
                 </p>
-                <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
-                  {menu.map((item) => {
-                    const checked = !!selectedItems[item.id];
-                    return (
-                      <li key={item.id}>
-                        <label
-                          htmlFor={`menu-${item.id}`}
-                          className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors"
-                        >
-                          <Checkbox
-                            id={`menu-${item.id}`}
-                            checked={checked}
-                            onCheckedChange={() => toggleItem(item.id)}
-                          />
-                          <span className="flex-1 text-sm text-foreground">{item.name}</span>
-                          <span className="text-sm font-medium text-foreground">
-                            ₹{item.price.toLocaleString("en-IN")}
-                          </span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {(() => {
+                  const groups: { key: string; label: string }[] = [
+                    { key: "starters", label: "Starters" },
+                    { key: "main", label: "Main Course" },
+                    { key: "desserts", label: "Desserts" },
+                    { key: "others", label: "Others" },
+                  ];
+                  const ungrouped = menu.filter((m) => !m.category);
+                  return (
+                    <div className="space-y-6">
+                      {groups.map((g) => {
+                        const items = menu.filter((m) => m.category === g.key);
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={g.key}>
+                            <h3 className="text-xs uppercase tracking-[0.18em] text-secondary font-semibold mb-3">
+                              {g.label}
+                            </h3>
+                            <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+                              {items.map((item) => {
+                                const checked = !!selectedItems[item.id];
+                                return (
+                                  <li key={item.id}>
+                                    <label
+                                      htmlFor={`menu-${item.id}`}
+                                      className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors"
+                                    >
+                                      <Checkbox
+                                        id={`menu-${item.id}`}
+                                        checked={checked}
+                                        onCheckedChange={() => toggleItem(item.id)}
+                                      />
+                                      <span className="flex-1 text-sm text-foreground">{item.name}</span>
+                                      <span className="text-sm font-medium text-foreground">
+                                        ₹{item.price.toLocaleString("en-IN")}
+                                      </span>
+                                    </label>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                      {ungrouped.length > 0 && (
+                        <ul className="divide-y divide-border rounded-xl border border-border bg-card overflow-hidden">
+                          {ungrouped.map((item) => {
+                            const checked = !!selectedItems[item.id];
+                            return (
+                              <li key={item.id}>
+                                <label
+                                  htmlFor={`menu-${item.id}`}
+                                  className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors"
+                                >
+                                  <Checkbox
+                                    id={`menu-${item.id}`}
+                                    checked={checked}
+                                    onCheckedChange={() => toggleItem(item.id)}
+                                  />
+                                  <span className="flex-1 text-sm text-foreground">{item.name}</span>
+                                  <span className="text-sm font-medium text-foreground">
+                                    ₹{item.price.toLocaleString("en-IN")}
+                                  </span>
+                                </label>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })()}
                 <p className="mt-3 text-xs text-muted-foreground italic">*Prices are negotiable</p>
+              </div>
+            )}
+
+            {(vendor.experience || vendor.location || vendor.events?.length || vendor.social) && (
+              <div>
+                <h2 className="text-2xl text-foreground mb-5">Vendor details</h2>
+                <dl className="grid sm:grid-cols-2 gap-5">
+                  {vendor.experience && (
+                    <div>
+                      <dt className="text-xs uppercase tracking-widest text-muted-foreground">Experience</dt>
+                      <dd className="mt-1 text-sm text-foreground">{vendor.experience}</dd>
+                    </div>
+                  )}
+                  {vendor.location && (
+                    <div>
+                      <dt className="text-xs uppercase tracking-widest text-muted-foreground">Location servicing</dt>
+                      <dd className="mt-1 text-sm text-foreground">{vendor.location}</dd>
+                    </div>
+                  )}
+                  {vendor.events && vendor.events.length > 0 && (
+                    <div>
+                      <dt className="text-xs uppercase tracking-widest text-muted-foreground">Events undertaken</dt>
+                      <dd className="mt-1 text-sm text-foreground">{vendor.events.join(", ")}</dd>
+                    </div>
+                  )}
+                  {vendor.social && (
+                    <div>
+                      <dt className="text-xs uppercase tracking-widest text-muted-foreground">Social</dt>
+                      <dd className="mt-1 text-sm text-foreground">{vendor.social}</dd>
+                    </div>
+                  )}
+                </dl>
               </div>
             )}
           </div>
