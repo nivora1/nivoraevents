@@ -5,9 +5,20 @@ export const VENDOR_APPLICATION_FORM_URL =
 
 export const buildBookingWhatsAppUrl = (
   vendorName: string,
-  options?: { items?: string[]; total?: number }
+  options?: {
+    items?: string[];
+    total?: number;
+    packageName?: string;
+    packagePrice?: number;
+  }
 ) => {
   let text = `Hi, I'm interested in booking ${vendorName} for my event.`;
+  if (options?.packageName) {
+    text += `\n\nSelected package: ${options.packageName}`;
+    if (typeof options.packagePrice === "number") {
+      text += ` (₹${options.packagePrice.toLocaleString("en-IN")})`;
+    }
+  }
   if (options?.items && options.items.length > 0) {
     text += `\n\nSelected items: ${options.items.join(", ")}`;
     if (typeof options.total === "number") {
