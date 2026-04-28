@@ -4,17 +4,28 @@ import { Check, MessageCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const VendorDetail = () => {
   const { id } = useParams();
   const vendor = vendors.find((v) => v.id === id);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(
+    vendor?.packages?.[0]?.id
+  );
 
   if (!vendor) return <Navigate to="/services" replace />;
 
   const isCatering = vendor.service === "catering";
+  const isPhotography = vendor.service === "photography";
   const menu = vendor.menu ?? [];
+  const packages = vendor.packages ?? [];
 
   const selected = useMemo(
     () => menu.filter((m) => selectedItems[m.id]),
@@ -22,12 +33,16 @@ const VendorDetail = () => {
   );
   const total = selected.reduce((sum, m) => sum + m.price, 0);
 
-  const whatsappUrl = buildBookingWhatsAppUrl(
-    vendor.name,
-    isCatering && selected.length > 0
+  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+
+  const whatsappUrl = buildBookingWhatsAppUrl(vendor.name, {
+    ...(isCatering && selected.length > 0
       ? { items: selected.map((s) => s.name), total }
-      : undefined
-  );
+      : {}),
+    ...(isPhotography && selectedPackage
+      ? { packageName: selectedPackage.name, packagePrice: selectedPackage.price }
+      : {}),
+  });
 
   const serviceLabel = isCatering ? "Caterers" : "Photographers";
 
