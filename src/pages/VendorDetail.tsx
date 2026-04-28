@@ -121,6 +121,65 @@ const VendorDetail = () => {
               </ul>
             </div>
 
+            {/* Photography packages */}
+            {isPhotography && packages.length > 0 && (
+              <div>
+                <h2 className="text-2xl text-foreground mb-2">Packages</h2>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Select a package to include in your booking enquiry.
+                </p>
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={selectedPackageId}
+                  onValueChange={(v) => setSelectedPackageId(v || undefined)}
+                  className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border"
+                >
+                  {packages.map((pkg) => {
+                    const isSelected = selectedPackageId === pkg.id;
+                    return (
+                      <AccordionItem
+                        key={pkg.id}
+                        value={pkg.id}
+                        className={`border-b-0 px-5 transition-colors ${
+                          isSelected ? "bg-primary-soft/40" : ""
+                        }`}
+                      >
+                        <AccordionTrigger className="hover:no-underline py-5">
+                          <div className="flex flex-1 items-center justify-between gap-4 pr-3">
+                            <div className="flex items-center gap-3 text-left">
+                              <span
+                                className={`h-4 w-4 rounded-full border-2 flex-shrink-0 transition-colors ${
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : "border-muted-foreground/40"
+                                }`}
+                              />
+                              <span className="text-sm font-medium text-foreground">
+                                {pkg.name}
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold text-primary whitespace-nowrap">
+                              ₹{pkg.price.toLocaleString("en-IN")}
+                              {pkg.priceLabel && (
+                                <span className="text-muted-foreground font-normal">
+                                  {pkg.priceLabel}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm text-muted-foreground leading-relaxed pl-7 pr-3">
+                          {pkg.description}
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+                <p className="mt-3 text-xs text-muted-foreground italic">*Prices are negotiable</p>
+              </div>
+            )}
+
             {/* Catering menu */}
             {isCatering && menu.length > 0 && (
               <div>
