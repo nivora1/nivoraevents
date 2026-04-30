@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Download, Plus, Trash2 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
 
 type Item = {
   id: string;
@@ -143,6 +144,7 @@ const BudgetPlanner = () => {
 
   return (
     <div className="bg-surface min-h-screen pb-32">
+      <DataPersistenceBanner />
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="container-narrow pt-14 pb-16 md:pt-20 md:pb-20">
