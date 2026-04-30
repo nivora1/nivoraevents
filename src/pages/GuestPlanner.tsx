@@ -398,16 +398,20 @@ const GuestPlanner = () => {
                     : g.rsvp === "Declined"
                     ? "bg-destructive"
                     : "bg-secondary";
+                const tightSelect =
+                  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring";
+                const tightInput =
+                  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring";
                 return (
                   <li key={g.id} className="bg-card">
                     <button
                       onClick={() => setExpandedId(open ? null : g.id)}
-                      className="w-full flex items-center justify-between gap-3 px-5 md:px-7 py-3 text-left hover:bg-muted/30 transition-colors"
+                      className="w-full flex items-center justify-between gap-3 px-4 md:px-6 py-2 text-left hover:bg-muted/30 transition-colors"
                       aria-expanded={open}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <span className={`h-2 w-2 rounded-full ${rsvpDot}`} aria-hidden />
-                        <span className="text-sm md:text-base text-foreground truncate">
+                        <span className="text-sm text-foreground truncate">
                           {g.name || "Unnamed guest"}
                         </span>
                         {g.plusOne && (
@@ -422,47 +426,47 @@ const GuestPlanner = () => {
                     </button>
 
                     {open && (
-                      <div className="px-5 md:px-7 pb-5 pt-1 animate-fade-in">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Name</span>
+                      <div className="px-4 md:px-6 pb-3 pt-1 animate-fade-in border-t border-border/40">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-2 gap-y-2 mt-2">
+                          <label className="block col-span-2">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Name</span>
                             <input
                               type="text"
                               value={g.name}
                               onChange={(e) => updateGuest(g.id, { name: e.target.value })}
-                              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                              className={`mt-0.5 ${tightInput}`}
                             />
                           </label>
-                          <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Mobile</span>
+                          <label className="block col-span-2">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Mobile</span>
                             <input
                               type="tel"
                               value={g.mobile}
                               onChange={(e) => updateGuest(g.id, { mobile: e.target.value })}
                               placeholder="Mobile number"
-                              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                              className={`mt-0.5 ${tightInput}`}
                             />
                           </label>
                           <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Side</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Side</span>
                             <select
                               value={g.side}
                               onChange={(e) => updateGuest(g.id, { side: e.target.value as Side | "" })}
-                              className={`mt-1 ${selectCls} py-2 ${placeholderTone(g.side)}`}
+                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.side)}`}
                             >
-                              <option value="">Select side (Bride/Groom)</option>
+                              <option value="">Side</option>
                               <option value="Bride">Bride</option>
                               <option value="Groom">Groom</option>
                             </select>
                           </label>
                           <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Group</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</span>
                             <select
                               value={g.group}
                               onChange={(e) => updateGuest(g.id, { group: e.target.value as Group | "" })}
-                              className={`mt-1 ${selectCls} py-2 ${placeholderTone(g.group)}`}
+                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.group)}`}
                             >
-                              <option value="">Select group (Family/Friends/Work/VIP)</option>
+                              <option value="">Group</option>
                               <option value="Family">Family</option>
                               <option value="Friends">Friends</option>
                               <option value="Work">Work</option>
@@ -470,77 +474,77 @@ const GuestPlanner = () => {
                             </select>
                           </label>
                           <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">RSVP Status</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">RSVP</span>
                             <select
                               value={g.rsvp}
                               onChange={(e) => updateGuest(g.id, { rsvp: e.target.value as RSVP | "" })}
-                              className={`mt-1 ${selectCls} py-2 ${placeholderTone(g.rsvp)}`}
+                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.rsvp)}`}
                             >
-                              <option value="">Select RSVP status</option>
+                              <option value="">RSVP</option>
                               <option value="Pending">Pending</option>
                               <option value="Confirmed">Confirmed</option>
                               <option value="Declined">Declined</option>
                             </select>
                           </label>
                           <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Invite Status</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Invite</span>
                             <select
                               value={g.invite}
                               onChange={(e) => updateGuest(g.id, { invite: e.target.value as Invite | "" })}
-                              className={`mt-1 ${selectCls} py-2 ${placeholderTone(g.invite)}`}
+                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.invite)}`}
                             >
-                              <option value="">Select invite status</option>
+                              <option value="">Invite</option>
                               <option value="Not Invited">Not Invited</option>
                               <option value="Invited">Invited</option>
                               <option value="RSVP Received">RSVP Received</option>
                             </select>
                           </label>
                           <label className="block">
-                            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Meal Preference</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Meal</span>
                             <select
                               value={g.meal}
                               onChange={(e) => updateGuest(g.id, { meal: e.target.value as Meal | "" })}
-                              className={`mt-1 ${selectCls} py-2 ${placeholderTone(g.meal)}`}
+                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.meal)}`}
                             >
-                              <option value="">Select meal preference</option>
+                              <option value="">Meal</option>
                               <option value="Veg">Veg</option>
                               <option value="Non-Veg">Non-Veg</option>
                             </select>
                           </label>
-                          <label className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 mt-[18px]">
-                            <span className="text-xs text-foreground">Plus one</span>
+                          <label className="flex items-center justify-between rounded-md border border-input bg-background px-2 py-1.5 mt-[16px] col-span-2 md:col-span-1">
+                            <span className="text-[11px] text-foreground">Plus one</span>
                             <button
                               onClick={() => updateGuest(g.id, { plusOne: !g.plusOne })}
-                              className={`inline-flex items-center justify-center h-6 w-11 rounded-full transition-colors ${
+                              className={`inline-flex items-center justify-center h-5 w-9 rounded-full transition-colors ${
                                 g.plusOne ? "bg-primary" : "bg-muted"
                               }`}
                               aria-pressed={g.plusOne}
                             >
                               <span
-                                className={`h-5 w-5 rounded-full bg-background shadow transition-transform ${
-                                  g.plusOne ? "translate-x-2.5" : "-translate-x-2.5"
+                                className={`h-4 w-4 rounded-full bg-background shadow transition-transform ${
+                                  g.plusOne ? "translate-x-2" : "-translate-x-2"
                                 }`}
                               />
                             </button>
                           </label>
+                          <label className="block col-span-2 md:col-span-4">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</span>
+                            <input
+                              type="text"
+                              value={g.notes}
+                              onChange={(e) => updateGuest(g.id, { notes: e.target.value })}
+                              placeholder="Allergies, seating, etc."
+                              className={`mt-0.5 ${tightInput}`}
+                            />
+                          </label>
                         </div>
-                        <label className="block mt-3">
-                          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Notes</span>
-                          <input
-                            type="text"
-                            value={g.notes}
-                            onChange={(e) => updateGuest(g.id, { notes: e.target.value })}
-                            placeholder="Allergies, seating, etc."
-                            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
-                          />
-                        </label>
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-2 flex justify-end">
                           <button
                             onClick={() => removeGuest(g.id)}
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Remove guest
+                            <Trash2 className="h-3 w-3" />
+                            Remove
                           </button>
                         </div>
                       </div>
@@ -549,7 +553,7 @@ const GuestPlanner = () => {
                 );
               })}
               {visibleGuests.length === 0 && (
-                <li className="px-5 py-12 text-center text-sm text-muted-foreground">
+                <li className="px-5 py-10 text-center text-sm text-muted-foreground">
                   {guests.length === 0
                     ? "Your guest list is empty. Add your first guest above."
                     : "No guests match this filter."}
