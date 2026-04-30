@@ -11,6 +11,7 @@ import VendorDetail from "./pages/VendorDetail.tsx";
 import VendorApplication from "./pages/VendorApplication.tsx";
 import VendorApplicationSuccess from "./pages/VendorApplicationSuccess.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
+import GuestPlanner from "./pages/GuestPlanner.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/list-your-service" element={<VendorApplication />} />
             <Route path="/list-your-service/success" element={<VendorApplicationSuccess />} />
             <Route path="/budget-planner" element={<BudgetPlanner />} />
+            <Route path="/guest-planner" element={<GuestPlanner />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
