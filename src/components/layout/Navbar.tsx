@@ -8,6 +8,7 @@ const links = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
   { to: "/services/photography", label: "Vendors" },
+  { to: "/budget-planner", label: "Budget Planner" },
 ];
 
 const Navbar = () => {
