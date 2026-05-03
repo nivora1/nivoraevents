@@ -82,64 +82,33 @@ const GuestPlanner = () => {
     };
   }, [user]);
 
-  // Save only on exit (unmount, route change, tab close) — not on every keystroke.
-  const latestRef = useRef({ guests, perPlate });
+  // Explicit save — runs only when guests are added / edited / removed.
+  const loadedRef = useRef(false);
   useEffect(() => {
-    latestRef.current = { guests, perPlate };
-    if (loaded) setSaveStatus("idle");
-  }, [guests, perPlate, loaded]);
+    loadedRef.current = loaded;
+  }, [loaded]);
 
-  const saveNow = useCallback(async () => {
-    if (!user || !loaded) return;
-    const val = latestRef.current;
-    setSaveStatus("saving");
-    const { error } = await supabase.from("guest_planner_data").upsert(
-      [{
-        user_id: user.id,
-        guests: val.guests as unknown as never,
-        per_plate: val.perPlate === "" ? null : Number(val.perPlate),
-      }],
-      { onConflict: "user_id" },
-    );
-    if (error) {
-      toast.error("Failed to save");
-      setSaveStatus("idle");
-    } else {
-      setSaveStatus("saved");
-    }
-  }, [user, loaded]);
-
-  // Best-effort save when the tab is hidden or being closed.
-  useEffect(() => {
-    if (!loaded) return;
-    const handler = () => {
-      const val = latestRef.current;
-      if (!user) return;
-      void supabase.from("guest_planner_data").upsert(
+  const persist = useCallback(
+    async (nextGuests: Guest[], nextPerPlate: number | "") => {
+      if (!user || !loadedRef.current) return;
+      setSaveStatus("saving");
+      const { error } = await supabase.from("guest_planner_data").upsert(
         [{
           user_id: user.id,
-          guests: val.guests as unknown as never,
-          per_plate: val.perPlate === "" ? null : Number(val.perPlate),
+          guests: nextGuests as unknown as never,
+          per_plate: nextPerPlate === "" ? null : Number(nextPerPlate),
         }],
         { onConflict: "user_id" },
       );
-    };
-    window.addEventListener("beforeunload", handler);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") handler();
-    });
-    return () => {
-      window.removeEventListener("beforeunload", handler);
-    };
-  }, [loaded, user]);
-
-  // Save on unmount (route change away from this page).
-  useEffect(() => {
-    return () => {
-      void saveNow();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      if (error) {
+        toast.error("Failed to save");
+        setSaveStatus("idle");
+      } else {
+        setSaveStatus("saved");
+      }
+    },
+    [user],
+  );
 
   // Quick add
   const [qName, setQName] = useState("");
@@ -152,11 +121,19 @@ const GuestPlanner = () => {
   const [invitedRecently, setInvitedRecently] = useState<Guest[]>([]);
 
   const updateGuest = (id: string, patch: Partial<Guest>) => {
-    setGuests((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+    setGuests((prev) => {
+      const next = prev.map((g) => (g.id === id ? { ...g, ...patch } : g));
+      void persist(next, perPlate);
+      return next;
+    });
   };
 
   const removeGuest = (id: string) => {
-    setGuests((prev) => prev.filter((g) => g.id !== id));
+    setGuests((prev) => {
+      const next = prev.filter((g) => g.id !== id);
+      void persist(next, perPlate);
+      return next;
+    });
     if (expandedId === id) setExpandedId(null);
   };
 
@@ -177,7 +154,11 @@ const GuestPlanner = () => {
       meal: "",
       notes: "",
     };
-    setGuests((prev) => [newGuest, ...prev]);
+    setGuests((prev) => {
+      const next = [newGuest, ...prev];
+      void persist(next, perPlate);
+      return next;
+    });
     setQName("");
     setQMobile("");
     setQSide("");
