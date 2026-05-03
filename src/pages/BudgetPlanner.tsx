@@ -194,7 +194,7 @@ const BudgetPlanner = () => {
 
   return (
     <div className="bg-surface min-h-screen pb-32">
-      <DataPersistenceBanner />
+      <DataPersistenceBanner status={saveStatus === "saving" ? "saving" : "saved"} />
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="container-narrow pt-14 pb-16 md:pt-20 md:pb-20">
