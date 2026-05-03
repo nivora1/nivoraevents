@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Download, Plus, Trash2 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 
 type Item = {
   id: string;
@@ -81,7 +85,53 @@ const inr = (n: number) =>
   n.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
 const BudgetPlanner = () => {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [loaded, setLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  useEffect(() => {
+    if (!user) return;
+    let cancel = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("budget_planner_data")
+        .select("categories")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancel) return;
+      if (error) {
+        toast.error("Couldn't load saved budget");
+      } else if (data && Array.isArray(data.categories) && (data.categories as unknown as Category[]).length > 0) {
+        setCategories(data.categories as unknown as Category[]);
+      }
+      setLoaded(true);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [user]);
+
+  useDebouncedSave(
+    categories,
+    async (val) => {
+      if (!user) return;
+      setSaveStatus("saving");
+      const { error } = await supabase.from("budget_planner_data").upsert(
+        [{ user_id: user.id, categories: val as unknown as never }],
+        { onConflict: "user_id" },
+      );
+      if (error) {
+        toast.error("Failed to save");
+        setSaveStatus("idle");
+      } else {
+        setSaveStatus("saved");
+      }
+    },
+    700,
+    loaded,
+  );
+
 
   const updateItem = (cKey: string, id: string, patch: Partial<Item>) => {
     setCategories((prev) =>
@@ -144,7 +194,7 @@ const BudgetPlanner = () => {
 
   return (
     <div className="bg-surface min-h-screen pb-32">
-      <DataPersistenceBanner />
+      <DataPersistenceBanner status={saveStatus === "saving" ? "saving" : "saved"} />
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-hero">
         <div className="container-narrow pt-14 pb-16 md:pt-20 md:pb-20">
