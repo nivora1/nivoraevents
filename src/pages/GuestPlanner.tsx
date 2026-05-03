@@ -255,11 +255,13 @@ const GuestPlanner = () => {
       toast.error("No guests with mobile numbers to invite");
       return;
     }
-    setGuests((prev) =>
-      prev.map((g) =>
+    setGuests((prev) => {
+      const next = prev.map((g) =>
         g.mobile.trim() && g.invite !== "RSVP Received" ? { ...g, invite: "Invited" } : g,
-      ),
-    );
+      );
+      void persist(next, perPlate);
+      return next;
+    });
     setInvitedRecently(eligible);
     toast.success(`Invites sent successfully to ${eligible.length} guest${eligible.length > 1 ? "s" : ""}`);
   };
