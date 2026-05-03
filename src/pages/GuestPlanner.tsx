@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -18,6 +18,9 @@ import {
 import { Reveal } from "@/components/Reveal";
 import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 
 type Side = "Bride" | "Groom";
 type Group = "Family" | "Friends" | "Work" | "VIP";
@@ -48,10 +51,60 @@ const inr = (n: number) =>
 const filters: FilterKey[] = ["All", "Confirmed", "Pending", "Declined", "Family", "Friends", "Work", "VIP"];
 
 const GuestPlanner = () => {
+  const { user } = useAuth();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [filter, setFilter] = useState<FilterKey>("All");
   const [perPlate, setPerPlate] = useState<number | "">("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  useEffect(() => {
+    if (!user) return;
+    let cancel = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("guest_planner_data")
+        .select("guests, per_plate")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancel) return;
+      if (error) {
+        toast.error("Couldn't load saved data");
+      } else if (data) {
+        setGuests((data.guests as unknown as Guest[]) ?? []);
+        setPerPlate(data.per_plate === null ? "" : Number(data.per_plate));
+      }
+      setLoaded(true);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [user]);
+
+  useDebouncedSave(
+    { guests, perPlate },
+    async (val) => {
+      if (!user) return;
+      setSaveStatus("saving");
+      const { error } = await supabase.from("guest_planner_data").upsert(
+        {
+          user_id: user.id,
+          guests: val.guests as unknown as object,
+          per_plate: val.perPlate === "" ? null : Number(val.perPlate),
+        },
+        { onConflict: "user_id" },
+      );
+      if (error) {
+        toast.error("Failed to save");
+        setSaveStatus("idle");
+      } else {
+        setSaveStatus("saved");
+      }
+    },
+    700,
+    loaded,
+  );
 
   // Quick add
   const [qName, setQName] = useState("");
