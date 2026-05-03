@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -20,7 +20,7 @@ import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDebouncedSave } from "@/hooks/useDebouncedSave";
+
 
 type Side = "Bride" | "Groom";
 type Group = "Family" | "Friends" | "Work" | "VIP";
@@ -82,12 +82,40 @@ const GuestPlanner = () => {
     };
   }, [user]);
 
-  useDebouncedSave(
-    { guests, perPlate },
-    async (val) => {
+  // Save only on exit (unmount, route change, tab close) — not on every keystroke.
+  const latestRef = useRef({ guests, perPlate });
+  useEffect(() => {
+    latestRef.current = { guests, perPlate };
+    if (loaded) setSaveStatus("idle");
+  }, [guests, perPlate, loaded]);
+
+  const saveNow = useCallback(async () => {
+    if (!user || !loaded) return;
+    const val = latestRef.current;
+    setSaveStatus("saving");
+    const { error } = await supabase.from("guest_planner_data").upsert(
+      [{
+        user_id: user.id,
+        guests: val.guests as unknown as never,
+        per_plate: val.perPlate === "" ? null : Number(val.perPlate),
+      }],
+      { onConflict: "user_id" },
+    );
+    if (error) {
+      toast.error("Failed to save");
+      setSaveStatus("idle");
+    } else {
+      setSaveStatus("saved");
+    }
+  }, [user, loaded]);
+
+  // Best-effort save when the tab is hidden or being closed.
+  useEffect(() => {
+    if (!loaded) return;
+    const handler = () => {
+      const val = latestRef.current;
       if (!user) return;
-      setSaveStatus("saving");
-      const { error } = await supabase.from("guest_planner_data").upsert(
+      void supabase.from("guest_planner_data").upsert(
         [{
           user_id: user.id,
           guests: val.guests as unknown as never,
@@ -95,16 +123,23 @@ const GuestPlanner = () => {
         }],
         { onConflict: "user_id" },
       );
-      if (error) {
-        toast.error("Failed to save");
-        setSaveStatus("idle");
-      } else {
-        setSaveStatus("saved");
-      }
-    },
-    700,
-    loaded,
-  );
+    };
+    window.addEventListener("beforeunload", handler);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") handler();
+    });
+    return () => {
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [loaded, user]);
+
+  // Save on unmount (route change away from this page).
+  useEffect(() => {
+    return () => {
+      void saveNow();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Quick add
   const [qName, setQName] = useState("");
