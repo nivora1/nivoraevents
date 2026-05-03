@@ -142,6 +142,21 @@ const Navbar = () => {
                 {l.label}
               </NavLink>
             ))}
+            {user ? (
+              <button
+                onClick={handleSignOut}
+                className="mt-1 py-3 px-2 rounded-md text-sm font-medium text-left text-foreground hover:bg-muted inline-flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" /> Sign out
+              </button>
+            ) : (
+              <Link
+                to="/auth"
+                className="mt-1 py-3 px-2 rounded-md text-sm font-medium text-foreground hover:bg-muted inline-flex items-center gap-2"
+              >
+                <UserIcon className="h-4 w-4" /> Sign in
+              </Link>
+            )}
             <a
               href={VENDOR_APPLICATION_FORM_URL}
               target="_blank"
