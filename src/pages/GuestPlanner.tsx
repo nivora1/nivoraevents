@@ -256,8 +256,8 @@ const GuestPlanner = () => {
       return;
     }
     setGuests((prev) => {
-      const next = prev.map((g) =>
-        g.mobile.trim() && g.invite !== "RSVP Received" ? { ...g, invite: "Invited" } : g,
+      const next: Guest[] = prev.map((g) =>
+        g.mobile.trim() && g.invite !== "RSVP Received" ? { ...g, invite: "Invited" as Invite } : g,
       );
       void persist(next, perPlate);
       return next;
