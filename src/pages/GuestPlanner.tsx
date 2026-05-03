@@ -88,11 +88,11 @@ const GuestPlanner = () => {
       if (!user) return;
       setSaveStatus("saving");
       const { error } = await supabase.from("guest_planner_data").upsert(
-        {
+        [{
           user_id: user.id,
-          guests: val.guests as unknown as object,
+          guests: val.guests as unknown as never,
           per_plate: val.perPlate === "" ? null : Number(val.perPlate),
-        },
+        }],
         { onConflict: "user_id" },
       );
       if (error) {
