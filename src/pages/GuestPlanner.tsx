@@ -265,7 +265,7 @@ const GuestPlanner = () => {
 
   return (
     <div className="bg-surface min-h-screen pb-32">
-      <DataPersistenceBanner />
+      <DataPersistenceBanner status={saveStatus === "saving" ? "saving" : "saved"} />
 
       {/* Header */}
       <section className="relative overflow-hidden bg-gradient-hero">
