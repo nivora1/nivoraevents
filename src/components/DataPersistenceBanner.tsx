@@ -16,9 +16,9 @@ export const DataPersistenceBanner = ({ status = "saved" }: Props) => {
 
   return (
     <div className="sticky top-16 z-30 bg-primary-soft/40 border-b border-primary/15 backdrop-blur-md">
-      <div className="container-narrow flex items-center gap-2.5 py-2 px-4 md:px-6">
+      <div className="container-narrow flex items-center gap-2.5 py-2 px-4 md:px-6 min-h-[36px]">
         <Icon className={`h-3.5 w-3.5 shrink-0 ${tone} ${spin ? "animate-spin" : ""}`} />
-        <p className="text-xs text-foreground/80 leading-snug">{text}</p>
+        <p className="text-xs text-foreground/80 leading-snug truncate">{text}</p>
       </div>
     </div>
   );
