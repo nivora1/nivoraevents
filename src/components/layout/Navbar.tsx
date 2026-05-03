@@ -1,8 +1,9 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, User as UserIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VENDOR_APPLICATION_FORM_URL } from "@/lib/contact";
+import { useAuth } from "@/contexts/AuthContext";
 
 const links = [
   { to: "/", label: "Home" },
@@ -15,6 +16,13 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -76,14 +84,33 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <a
-          href={VENDOR_APPLICATION_FORM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden md:inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all duration-300"
-        >
-          List Your Service
-        </a>
+        <div className="hidden md:flex items-center gap-3">
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              <UserIcon className="h-4 w-4" />
+              Sign in
+            </Link>
+          )}
+          <a
+            href={VENDOR_APPLICATION_FORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all duration-300"
+          >
+            List Your Service
+          </a>
+        </div>
 
         <button
           aria-label="Toggle menu"
