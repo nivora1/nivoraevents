@@ -12,7 +12,10 @@ import VendorApplication from "./pages/VendorApplication.tsx";
 import VendorApplicationSuccess from "./pages/VendorApplicationSuccess.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import GuestPlanner from "./pages/GuestPlanner.tsx";
+import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider } from "./contexts/AuthContext";
+import { RequireAuth } from "./components/RequireAuth";
 
 const queryClient = new QueryClient();
 
@@ -22,20 +25,23 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route element={<SiteLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/services/:service" element={<ServiceListing />} />
-            <Route path="/vendors/:id" element={<VendorDetail />} />
-            <Route path="/list-your-service" element={<VendorApplication />} />
-            <Route path="/list-your-service/success" element={<VendorApplicationSuccess />} />
-            <Route path="/budget-planner" element={<BudgetPlanner />} />
-            <Route path="/guest-planner" element={<GuestPlanner />} />
-          </Route>
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route element={<SiteLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/services/:service" element={<ServiceListing />} />
+              <Route path="/vendors/:id" element={<VendorDetail />} />
+              <Route path="/list-your-service" element={<VendorApplication />} />
+              <Route path="/list-your-service/success" element={<VendorApplicationSuccess />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/budget-planner" element={<RequireAuth><BudgetPlanner /></RequireAuth>} />
+              <Route path="/guest-planner" element={<RequireAuth><GuestPlanner /></RequireAuth>} />
+            </Route>
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,14 +1,24 @@
-import { AlertTriangle } from "lucide-react";
+import { CheckCircle2, Loader2, CloudOff } from "lucide-react";
 
-export const DataPersistenceBanner = () => {
+type Props = {
+  status?: "idle" | "saving" | "saved" | "offline";
+};
+
+export const DataPersistenceBanner = ({ status = "saved" }: Props) => {
+  const config = {
+    idle: { Icon: CheckCircle2, text: "Your changes are saved automatically to your account.", tone: "text-primary" },
+    saving: { Icon: Loader2, text: "Saving your changes…", tone: "text-secondary", spin: true },
+    saved: { Icon: CheckCircle2, text: "Your changes are saved automatically to your account.", tone: "text-primary" },
+    offline: { Icon: CloudOff, text: "You're signed out — sign in to save your data across devices.", tone: "text-muted-foreground" },
+  }[status];
+  const { Icon, text, tone } = config;
+  const spin = status === "saving";
+
   return (
-    <div className="sticky top-16 z-30 bg-secondary/15 border-b border-secondary/30 backdrop-blur-md">
-      <div className="container-narrow flex items-start gap-2.5 py-2.5 px-4 md:px-6">
-        <AlertTriangle className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
-        <p className="text-xs md:text-sm text-foreground/80 leading-snug">
-          <span className="font-medium text-foreground">Important:</span> Your data is not saved automatically.
-          Please complete your work without exiting the page and download your CSV before leaving.
-        </p>
+    <div className="sticky top-16 z-30 bg-primary-soft/40 border-b border-primary/15 backdrop-blur-md">
+      <div className="container-narrow flex items-center gap-2.5 py-2 px-4 md:px-6">
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${tone} ${spin ? "animate-spin" : ""}`} />
+        <p className="text-xs text-foreground/80 leading-snug">{text}</p>
       </div>
     </div>
   );
