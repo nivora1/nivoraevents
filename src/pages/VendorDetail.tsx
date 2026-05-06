@@ -180,7 +180,9 @@ const VendorDetail = () => {
                               </span>
                             </div>
                             <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                              ₹{pkg.price.toLocaleString("en-IN")}
+                              {pkg.price > 0
+                                ? `₹${pkg.price.toLocaleString("en-IN")}`
+                                : pkg.priceText || ""}
                               {pkg.priceLabel && (
                                 <span className="text-muted-foreground font-normal">
                                   {pkg.priceLabel}
