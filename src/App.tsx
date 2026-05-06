@@ -13,6 +13,8 @@ import VendorApplicationSuccess from "./pages/VendorApplicationSuccess.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import GuestPlanner from "./pages/GuestPlanner.tsx";
 import Auth from "./pages/Auth.tsx";
+import Admin from "./pages/Admin.tsx";
+import EventPlan from "./pages/EventPlan.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RequireAuth } from "./components/RequireAuth";
@@ -35,8 +37,10 @@ const App = () => (
               <Route path="/list-your-service" element={<VendorApplication />} />
               <Route path="/list-your-service/success" element={<VendorApplicationSuccess />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="/budget-planner" element={<RequireAuth><BudgetPlanner /></RequireAuth>} />
               <Route path="/guest-planner" element={<RequireAuth><GuestPlanner /></RequireAuth>} />
+              <Route path="/my-plan" element={<RequireAuth><EventPlan /></RequireAuth>} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

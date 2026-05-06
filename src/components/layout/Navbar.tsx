@@ -8,8 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const links = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
-  { to: "/services/photography", label: "Vendors" },
   { to: "/budget-planner", label: "Budget Planner" },
+  { to: "/my-plan", label: "My Plan" },
 ];
 
 const Navbar = () => {
@@ -102,14 +102,12 @@ const Navbar = () => {
               Sign in
             </Link>
           )}
-          <a
-            href={VENDOR_APPLICATION_FORM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/list-your-service"
             className="inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all duration-300"
           >
             List Your Service
-          </a>
+          </Link>
         </div>
 
         <button
@@ -157,15 +155,13 @@ const Navbar = () => {
                 <UserIcon className="h-4 w-4" /> Sign in
               </Link>
             )}
-            <a
-              href={VENDOR_APPLICATION_FORM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/list-your-service"
               className="mt-2 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium animate-fade-up"
               style={{ animationDelay: `${links.length * 60}ms` }}
             >
               List Your Service
-            </a>
+            </Link>
           </div>
         </div>
       )}
