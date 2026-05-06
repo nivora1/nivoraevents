@@ -1,7 +1,9 @@
 import { Link, useParams, Navigate } from "react-router-dom";
-import { vendors, services } from "@/data/vendors";
-import { ArrowRight } from "lucide-react";
+import { services, type Vendor } from "@/data/vendors";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { useEffect, useState } from "react";
+import { fetchApprovedVendors } from "@/lib/vendorsDb";
 
 const titles: Record<string, { title: string; subtitle: string }> = {
   photography: {
@@ -16,9 +18,15 @@ const titles: Record<string, { title: string; subtitle: string }> = {
 
 const ServiceListing = () => {
   const { service } = useParams();
-  if (!service || !titles[service]) return <Navigate to="/services" replace />;
+  const [filtered, setFiltered] = useState<Vendor[] | null>(null);
 
-  const filtered = vendors.filter((v) => v.service === service);
+  useEffect(() => {
+    if (!service || !titles[service]) return;
+    setFiltered(null);
+    fetchApprovedVendors(service as "photography" | "catering").then(setFiltered);
+  }, [service]);
+
+  if (!service || !titles[service]) return <Navigate to="/services" replace />;
   const meta = titles[service];
 
   return (
@@ -46,7 +54,11 @@ const ServiceListing = () => {
           </p>
         </div>
 
-        {filtered.length === 0 ? (
+        {filtered === null ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : filtered.length === 0 ? (
           <Reveal>
             <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
               <h2 className="font-serif text-2xl text-foreground">
