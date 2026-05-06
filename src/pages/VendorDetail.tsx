@@ -1,7 +1,7 @@
 import { Link, useParams, Navigate } from "react-router-dom";
-import { vendors } from "@/data/vendors";
-import { Check, MessageCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import type { Vendor } from "@/data/vendors";
+import { Check, Loader2, MessageCircle, Plus, Minus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -10,16 +10,36 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { fetchVendorById } from "@/lib/vendorsDb";
+import { useAuth } from "@/contexts/AuthContext";
+import { getLocalPlan, setLocalPlan, savePlanVendors } from "@/lib/eventPlan";
+import { toast } from "sonner";
 
 const VendorDetail = () => {
   const { id } = useParams();
-  const vendor = vendors.find((v) => v.id === id);
+  const { user } = useAuth();
+  const [vendor, setVendor] = useState<Vendor | null | undefined>(undefined);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
-  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(
-    vendor?.packages?.[0]?.id
-  );
+  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
+  const [planIds, setPlanIds] = useState<string[]>(() => getLocalPlan());
 
+  useEffect(() => {
+    if (!id) return;
+    setVendor(undefined);
+    fetchVendorById(id).then((v) => {
+      setVendor(v);
+      setSelectedPackageId(v?.packages?.[0]?.id);
+    });
+  }, [id]);
+
+  if (vendor === undefined) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!vendor) return <Navigate to="/services" replace />;
 
   const isCatering = vendor.service === "catering";
