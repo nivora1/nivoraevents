@@ -398,6 +398,34 @@ const VendorDetail = () => {
               <p className="mt-3 text-xs text-center text-muted-foreground">
                 Opens WhatsApp with a pre-filled message
               </p>
+
+              {(() => {
+                const inPlan = planIds.includes(vendor.id);
+                const togglePlan = async () => {
+                  const next = inPlan
+                    ? planIds.filter((x) => x !== vendor.id)
+                    : [...planIds, vendor.id];
+                  setPlanIds(next);
+                  setLocalPlan(next);
+                  if (user) {
+                    try {
+                      await savePlanVendors(user.id, next);
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }
+                  toast.success(inPlan ? "Removed from your plan" : "Added to your plan");
+                };
+                return (
+                  <button
+                    onClick={togglePlan}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    {inPlan ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {inPlan ? "Remove from Plan" : "Add to Event Plan"}
+                  </button>
+                );
+              })()}
             </div>
           </aside>
         </div>
