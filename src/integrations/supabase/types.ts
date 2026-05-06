@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      event_plans: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          vendor_ids: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          vendor_ids?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          vendor_ids?: Json
+        }
+        Relationships: []
+      }
       guest_planner_data: {
         Row: {
           created_at: string
@@ -113,6 +143,72 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          created_at: string
+          description: string | null
+          events: Json
+          experience: string | null
+          id: string
+          images: Json
+          location: string | null
+          menu: Json
+          owner_user_id: string | null
+          packages: Json
+          price_range: string | null
+          service_type: Database["public"]["Enums"]["vendor_service"]
+          services_included: Json
+          short_description: string | null
+          slug: string | null
+          social: string | null
+          status: Database["public"]["Enums"]["vendor_status"]
+          updated_at: string
+          vendor_name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          events?: Json
+          experience?: string | null
+          id?: string
+          images?: Json
+          location?: string | null
+          menu?: Json
+          owner_user_id?: string | null
+          packages?: Json
+          price_range?: string | null
+          service_type: Database["public"]["Enums"]["vendor_service"]
+          services_included?: Json
+          short_description?: string | null
+          slug?: string | null
+          social?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          updated_at?: string
+          vendor_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          events?: Json
+          experience?: string | null
+          id?: string
+          images?: Json
+          location?: string | null
+          menu?: Json
+          owner_user_id?: string | null
+          packages?: Json
+          price_range?: string | null
+          service_type?: Database["public"]["Enums"]["vendor_service"]
+          services_included?: Json
+          short_description?: string | null
+          slug?: string | null
+          social?: string | null
+          status?: Database["public"]["Enums"]["vendor_status"]
+          updated_at?: string
+          vendor_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -128,6 +224,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      vendor_service: "photography" | "catering"
+      vendor_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -256,6 +354,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      vendor_service: ["photography", "catering"],
+      vendor_status: ["pending", "approved", "rejected"],
     },
   },
 } as const

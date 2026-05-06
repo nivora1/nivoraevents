@@ -1,7 +1,7 @@
 import { Link, useParams, Navigate } from "react-router-dom";
-import { vendors } from "@/data/vendors";
-import { Check, MessageCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import type { Vendor } from "@/data/vendors";
+import { Check, Loader2, MessageCircle, Plus, Minus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -10,16 +10,36 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { fetchVendorById } from "@/lib/vendorsDb";
+import { useAuth } from "@/contexts/AuthContext";
+import { getLocalPlan, setLocalPlan, savePlanVendors } from "@/lib/eventPlan";
+import { toast } from "sonner";
 
 const VendorDetail = () => {
   const { id } = useParams();
-  const vendor = vendors.find((v) => v.id === id);
+  const { user } = useAuth();
+  const [vendor, setVendor] = useState<Vendor | null | undefined>(undefined);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
-  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(
-    vendor?.packages?.[0]?.id
-  );
+  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined);
+  const [planIds, setPlanIds] = useState<string[]>(() => getLocalPlan());
 
+  useEffect(() => {
+    if (!id) return;
+    setVendor(undefined);
+    fetchVendorById(id).then((v) => {
+      setVendor(v);
+      setSelectedPackageId(v?.packages?.[0]?.id);
+    });
+  }, [id]);
+
+  if (vendor === undefined) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
   if (!vendor) return <Navigate to="/services" replace />;
 
   const isCatering = vendor.service === "catering";
@@ -160,7 +180,9 @@ const VendorDetail = () => {
                               </span>
                             </div>
                             <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                              ₹{pkg.price.toLocaleString("en-IN")}
+                              {pkg.price > 0
+                                ? `₹${pkg.price.toLocaleString("en-IN")}`
+                                : pkg.priceText || ""}
                               {pkg.priceLabel && (
                                 <span className="text-muted-foreground font-normal">
                                   {pkg.priceLabel}
@@ -376,6 +398,34 @@ const VendorDetail = () => {
               <p className="mt-3 text-xs text-center text-muted-foreground">
                 Opens WhatsApp with a pre-filled message
               </p>
+
+              {(() => {
+                const inPlan = planIds.includes(vendor.id);
+                const togglePlan = async () => {
+                  const next = inPlan
+                    ? planIds.filter((x) => x !== vendor.id)
+                    : [...planIds, vendor.id];
+                  setPlanIds(next);
+                  setLocalPlan(next);
+                  if (user) {
+                    try {
+                      await savePlanVendors(user.id, next);
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }
+                  toast.success(inPlan ? "Removed from your plan" : "Added to your plan");
+                };
+                return (
+                  <button
+                    onClick={togglePlan}
+                    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    {inPlan ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {inPlan ? "Remove from Plan" : "Add to Event Plan"}
+                  </button>
+                );
+              })()}
             </div>
           </aside>
         </div>

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Search, Heart, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-wedding.jpg";
 import { services } from "@/data/vendors";
-import { VENDOR_APPLICATION_FORM_URL } from "@/lib/contact";
+
 import { Reveal } from "@/components/Reveal";
 
 const Index = () => {
@@ -163,15 +163,13 @@ const Index = () => {
                   List your services and get high-quality leads from couples
                   actively planning their wedding.
                 </p>
-                <a
-                  href={VENDOR_APPLICATION_FORM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/list-your-service"
                   className="group mt-8 inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-7 py-3.5 text-sm font-semibold hover:opacity-90 hover:-translate-y-0.5 transition-all duration-300"
                 >
                   List Your Service
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </a>
+                </Link>
               </div>
             </div>
           </Reveal>
