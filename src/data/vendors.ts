@@ -11,7 +11,8 @@ export type MenuItem = {
 export type PhotographyPackage = {
   id: string;
   name: string;
-  price: number; // INR
+  price: number; // INR (0 if using priceText)
+  priceText?: string; // free-form price range, used when price === 0
   priceLabel?: string; // e.g. "/day"
   description: string;
 };
