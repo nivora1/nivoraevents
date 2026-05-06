@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Search, Heart, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-wedding.jpg";
 import { services } from "@/data/vendors";
-import { VENDOR_APPLICATION_FORM_URL } from "@/lib/contact";
+
 import { Reveal } from "@/components/Reveal";
 
 const Index = () => {
