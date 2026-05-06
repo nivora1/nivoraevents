@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { LogOut, Menu, User as UserIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VENDOR_APPLICATION_FORM_URL } from "@/lib/contact";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 const links = [
