@@ -33,6 +33,16 @@ const VendorDetail = () => {
     });
   }, [id]);
 
+  const isCatering = vendor?.service === "catering";
+  const isPhotography = vendor?.service === "photography";
+  const menu = vendor?.menu ?? [];
+  const packages = vendor?.packages ?? [];
+
+  const selected = useMemo(
+    () => menu.filter((m) => selectedItems[m.id]),
+    [menu, selectedItems]
+  );
+
   if (vendor === undefined) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -41,16 +51,6 @@ const VendorDetail = () => {
     );
   }
   if (!vendor) return <Navigate to="/services" replace />;
-
-  const isCatering = vendor.service === "catering";
-  const isPhotography = vendor.service === "photography";
-  const menu = vendor.menu ?? [];
-  const packages = vendor.packages ?? [];
-
-  const selected = useMemo(
-    () => menu.filter((m) => selectedItems[m.id]),
-    [menu, selectedItems]
-  );
   const total = selected.reduce((sum, m) => sum + m.price, 0);
 
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
