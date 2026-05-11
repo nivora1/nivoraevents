@@ -9,6 +9,7 @@ import Services from "./pages/Services.tsx";
 import ServiceListing from "./pages/ServiceListing.tsx";
 import VendorDetail from "./pages/VendorDetail.tsx";
 import VendorApplication from "./pages/VendorApplication.tsx";
+import CateringApplication from "./pages/CateringApplication.tsx";
 import VendorApplicationSuccess from "./pages/VendorApplicationSuccess.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import GuestPlanner from "./pages/GuestPlanner.tsx";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/services/:service" element={<ServiceListing />} />
               <Route path="/vendors/:id" element={<VendorDetail />} />
               <Route path="/list-your-service" element={<VendorApplication />} />
+              <Route path="/list-your-service/catering" element={<CateringApplication />} />
               <Route path="/list-your-service/success" element={<VendorApplicationSuccess />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/admin" element={<Admin />} />

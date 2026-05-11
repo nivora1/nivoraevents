@@ -1,48 +1,68 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, ChefHat, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-type Pkg = {
+type Category = "starters" | "main" | "desserts" | "others";
+
+type Dish = {
   id: string;
   name: string;
-  priceRange: string;
-  description: string;
+  price: string; // string in form, parsed on submit
+  category: Category;
 };
+
+const CATEGORY_LABELS: Record<Category, string> = {
+  starters: "Starters",
+  main: "Main Course",
+  desserts: "Desserts",
+  others: "Others / Miscellaneous",
+};
+
+const CATEGORY_ORDER: Category[] = ["starters", "main", "desserts", "others"];
 
 const fieldLabel = "block text-sm font-medium text-foreground mb-2";
 const inputClass =
   "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition";
 
-const VendorApplicationPage = () => {
+const newDish = (category: Category): Dish => ({
+  id: crypto.randomUUID(),
+  name: "",
+  price: "",
+  category,
+});
+
+const CateringApplicationPage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [serviceType, setServiceType] = useState<"" | "photography">("");
   const [vendorName, setVendorName] = useState("");
-  const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
+  const [description, setDescription] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [location, setLocation] = useState("");
   const [experience, setExperience] = useState("");
   const [social, setSocial] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [packages, setPackages] = useState<Pkg[]>([
-    { id: crypto.randomUUID(), name: "", priceRange: "", description: "" },
+  const [dishes, setDishes] = useState<Dish[]>([
+    newDish("starters"),
+    newDish("main"),
+    newDish("desserts"),
   ]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = "List Your Service · Nivora";
+    document.title = "List Your Catering · Nivora";
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) navigate("/auth", { state: { from: { pathname: "/list-your-service" } } });
+    if (!loading && !user)
+      navigate("/auth", { state: { from: { pathname: "/list-your-service/catering" } } });
   }, [user, loading, navigate]);
 
   const handleImages = (list: FileList | null) => {
@@ -61,19 +81,35 @@ const VendorApplicationPage = () => {
     setPreviews((p) => p.filter((_, idx) => idx !== i));
   };
 
-  const updatePackage = (id: string, patch: Partial<Pkg>) =>
-    setPackages((p) => p.map((pkg) => (pkg.id === id ? { ...pkg, ...patch } : pkg)));
-  const addPackage = () =>
-    setPackages((p) => [...p, { id: crypto.randomUUID(), name: "", priceRange: "", description: "" }]);
-  const removePackage = (id: string) => setPackages((p) => p.filter((pkg) => pkg.id !== id));
+  const addDish = (category: Category) =>
+    setDishes((d) => [...d, newDish(category)]);
+  const removeDish = (id: string) =>
+    setDishes((d) => d.filter((dish) => dish.id !== id));
+  const updateDish = (id: string, patch: Partial<Dish>) =>
+    setDishes((d) => d.map((dish) => (dish.id === id ? { ...dish, ...patch } : dish)));
+
+  const dishesByCategory = (cat: Category) => dishes.filter((d) => d.category === cat);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!vendorName.trim() || serviceType !== "photography") {
+    if (!vendorName.trim()) {
       toast.error("Vendor name is required");
       return;
     }
+    const cleanMenu = dishes
+      .filter((d) => d.name.trim() && d.price.trim())
+      .map((d) => ({
+        id: d.id,
+        name: d.name.trim(),
+        price: Number(d.price) || 0,
+        category: d.category,
+      }));
+    if (cleanMenu.length === 0) {
+      toast.error("Add at least one dish with a name and price");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const uploadedUrls: string[] = [];
@@ -88,27 +124,17 @@ const VendorApplicationPage = () => {
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      const cleanPackages = packages
-        .filter((p) => p.name.trim() || p.priceRange.trim() || p.description.trim())
-        .map((p) => ({
-          id: p.id,
-          name: p.name.trim(),
-          price: 0,
-          priceText: p.priceRange.trim(),
-          description: p.description.trim(),
-        }));
-
       const { error } = await supabase.from("vendors").insert({
         owner_user_id: user.id,
         vendor_name: vendorName.trim(),
-        service_type: "photography",
+        service_type: "catering",
         description: description.trim(),
         short_description: shortDescription.trim() || description.trim().slice(0, 140),
         price_range: priceRange.trim(),
         services_included: [],
         images: uploadedUrls,
-        packages: cleanPackages,
-        menu: [],
+        packages: [],
+        menu: cleanMenu,
         experience: experience.trim() || null,
         location: location.trim() || null,
         events: [],
@@ -117,7 +143,9 @@ const VendorApplicationPage = () => {
       });
       if (error) throw error;
       toast.success("Listing published!");
-      navigate("/list-your-service/success", { state: { vendorName, serviceType: "photography" } });
+      navigate("/list-your-service/success", {
+        state: { vendorName, serviceType: "catering" },
+      });
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Submission failed");
@@ -134,81 +162,31 @@ const VendorApplicationPage = () => {
     );
   }
 
-  // Step 1: choose service type
-  if (!serviceType) {
-    return (
-      <section className="py-12 md:py-20 bg-surface min-h-[80vh]">
-        <div className="mx-auto px-6 max-w-3xl">
-          <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
-            <Link to="/" className="hover:text-primary">Home</Link>
-            <span>/</span>
-            <span className="text-foreground">List Your Service</span>
-          </nav>
-
-          <div className="rounded-2xl bg-card border border-border shadow-soft overflow-hidden mb-8">
-            <div className="h-2 bg-gradient-primary" />
-            <div className="p-8 md:p-10">
-              <h1 className="text-3xl md:text-4xl text-foreground text-balance">List Your Service on Nivora</h1>
-              <p className="mt-3 text-muted-foreground leading-relaxed">
-                Choose the service you want to offer. Your listing goes live immediately after you submit.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-5">
-            <button
-              type="button"
-              onClick={() => setServiceType("photography")}
-              className="group rounded-2xl bg-card border border-border shadow-soft p-8 text-left hover:border-primary hover:shadow-card transition-all"
-            >
-              <div className="h-14 w-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                <Camera className="h-6 w-6" />
-              </div>
-              <h2 className="text-xl text-foreground mb-2">Photography</h2>
-              <p className="text-sm text-muted-foreground">Wedding, candid, cinematic and event photography & videography.</p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/list-your-service/catering")}
-              className="group rounded-2xl bg-card border border-border shadow-soft p-8 text-left hover:border-primary hover:shadow-card transition-all"
-            >
-              <div className="h-14 w-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                <ChefHat className="h-6 w-6" />
-              </div>
-              <h2 className="text-xl text-foreground mb-2">Catering</h2>
-              <p className="text-sm text-muted-foreground">Build a structured menu — starters, mains, desserts and more — with per-dish pricing.</p>
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="py-12 md:py-20 bg-surface min-h-[80vh]">
       <div className="mx-auto px-6 max-w-3xl">
         <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
           <Link to="/" className="hover:text-primary">Home</Link>
           <span>/</span>
-          <button type="button" onClick={() => setServiceType("")} className="hover:text-primary">List Your Service</button>
+          <Link to="/list-your-service" className="hover:text-primary">List Your Service</Link>
           <span>/</span>
-          <span className="text-foreground">Photography</span>
+          <span className="text-foreground">Catering</span>
         </nav>
 
         <div className="rounded-2xl bg-card border border-border shadow-soft overflow-hidden mb-8">
           <div className="h-2 bg-gradient-primary" />
           <div className="p-8 md:p-10">
             <h1 className="text-3xl md:text-4xl text-foreground text-balance">
-              Photography Listing Details
+              Catering Listing Details
             </h1>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Fill in your studio details and packages. Your listing goes live in Photography immediately after submission.
+              Build your menu by section. Your listing goes live in Catering immediately after submission.
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Images */}
           <div className="rounded-2xl bg-card border border-border shadow-soft p-8 md:p-10">
             <label className={fieldLabel}>Upload your service images</label>
             <div
@@ -248,11 +226,12 @@ const VendorApplicationPage = () => {
             )}
           </div>
 
+          {/* Basic */}
           <div className="rounded-2xl bg-card border border-border shadow-soft p-8 md:p-10 space-y-6">
             <h2 className="text-xl text-foreground">Basic details</h2>
             <div>
               <label className={fieldLabel}>Vendor Name <span className="text-destructive">*</span></label>
-              <input required type="text" value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="e.g. Lumière Studios" className={inputClass} maxLength={120} />
+              <input required type="text" value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="e.g. T0.2 Catering" className={inputClass} maxLength={120} />
             </div>
             <div>
               <label className={fieldLabel}>Short Tagline</label>
@@ -260,16 +239,16 @@ const VendorApplicationPage = () => {
             </div>
             <div>
               <label className={fieldLabel}>Description</label>
-              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell couples about your work, experience, and style..." className={inputClass} maxLength={2000} />
+              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell couples about your kitchen, style and signature dishes..." className={inputClass} maxLength={2000} />
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className={fieldLabel}>Price Range</label>
-                <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹30,000 – ₹1,00,000" className={inputClass} maxLength={80} />
+                <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹170 – ₹250 / plate" className={inputClass} maxLength={80} />
               </div>
               <div>
                 <label className={fieldLabel}>Experience</label>
-                <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 5 years" className={inputClass} maxLength={60} />
+                <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 7 years" className={inputClass} maxLength={60} />
               </div>
               <div>
                 <label className={fieldLabel}>Location</label>
@@ -282,48 +261,85 @@ const VendorApplicationPage = () => {
             </div>
           </div>
 
+          {/* Menu */}
           <div className="rounded-2xl bg-card border border-border shadow-soft p-8 md:p-10">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl text-foreground">Packages</h2>
-              <span className="text-xs text-muted-foreground">{packages.length} package{packages.length !== 1 ? "s" : ""}</span>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl text-foreground">Menu</h2>
+              <span className="text-xs text-muted-foreground">Add dishes by section</span>
             </div>
-            <div className="space-y-5">
-              {packages.map((pkg, idx) => (
-                <div key={pkg.id} className="rounded-xl border border-border p-5 bg-surface/50">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs uppercase tracking-widest text-secondary font-semibold">Package {idx + 1}</span>
-                    {packages.length > 1 && (
-                      <button type="button" onClick={() => removePackage(pkg.id)} className="text-muted-foreground hover:text-destructive transition-colors" aria-label="Remove package">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+            <p className="text-sm text-muted-foreground mb-6">
+              Enter dish name and price (₹) per plate / serving. Empty rows are ignored.
+            </p>
+
+            <div className="space-y-6">
+              {CATEGORY_ORDER.map((cat) => {
+                const items = dishesByCategory(cat);
+                return (
+                  <div key={cat} className="rounded-xl border border-border bg-surface/50 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm uppercase tracking-widest text-secondary font-semibold">
+                        {CATEGORY_LABELS[cat]}
+                      </h3>
+                      <span className="text-xs text-muted-foreground">{items.length} item{items.length !== 1 ? "s" : ""}</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {items.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">No dishes yet.</p>
+                      )}
+                      {items.map((dish) => (
+                        <div key={dish.id} className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                          <input
+                            type="text"
+                            value={dish.name}
+                            onChange={(e) => updateDish(dish.id, { name: e.target.value })}
+                            placeholder="Dish name (e.g. Paneer Tikka)"
+                            className={`${inputClass} sm:flex-1`}
+                            maxLength={120}
+                          />
+                          <div className="flex gap-2">
+                            <div className="relative flex-1 sm:flex-none sm:w-40">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                value={dish.price}
+                                onChange={(e) => updateDish(dish.id, { price: e.target.value })}
+                                placeholder="Price"
+                                className={`${inputClass} pl-7`}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeDish(dish.id)}
+                              className="h-11 w-11 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive flex items-center justify-center transition-colors"
+                              aria-label="Remove dish"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addDish(cat)}
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-primary/40 text-primary px-4 py-2 text-sm font-medium hover:bg-primary-soft transition-colors"
+                    >
+                      <Plus className="h-4 w-4" /> Add dish
+                    </button>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className={fieldLabel}>Package Name</label>
-                      <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, { name: e.target.value })} placeholder="e.g. Essential Wedding Coverage" className={inputClass} maxLength={120} />
-                    </div>
-                    <div>
-                      <label className={fieldLabel}>Price Range</label>
-                      <input type="text" value={pkg.priceRange} onChange={(e) => updatePackage(pkg.id, { priceRange: e.target.value })} placeholder="e.g. ₹30,000 – ₹80,000" className={inputClass} maxLength={80} />
-                    </div>
-                    <div>
-                      <label className={fieldLabel}>Package Description</label>
-                      <textarea rows={3} value={pkg.description} onChange={(e) => updatePackage(pkg.id, { description: e.target.value })} placeholder="What's included in this package..." className={inputClass} maxLength={1000} />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <button type="button" onClick={addPackage} className="mt-5 inline-flex items-center gap-2 rounded-full border border-dashed border-primary/40 text-primary px-5 py-2.5 text-sm font-medium hover:bg-primary-soft transition-colors">
-              <Plus className="h-4 w-4" /> Add Another Package
-            </button>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
-            <button type="button" onClick={() => setServiceType("")} className="inline-flex items-center justify-center rounded-full border border-border px-7 py-3.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors">
+            <Link to="/list-your-service" className="inline-flex items-center justify-center rounded-full border border-border px-7 py-3.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors">
               Back
-            </button>
+            </Link>
             <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-7 py-3.5 text-sm font-semibold shadow-soft hover:opacity-90 transition-opacity disabled:opacity-60">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Publish Listing
@@ -335,4 +351,4 @@ const VendorApplicationPage = () => {
   );
 };
 
-export default VendorApplicationPage;
+export default CateringApplicationPage;
