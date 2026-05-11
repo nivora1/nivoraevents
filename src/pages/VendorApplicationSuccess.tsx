@@ -18,13 +18,13 @@ const VendorApplicationSuccess = () => {
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <h1 className="text-3xl md:text-4xl text-foreground text-balance">
-              Your application has been submitted.
+              Your listing is live.
             </h1>
             <p className="mt-4 text-muted-foreground leading-relaxed">
               Thank you, <span className="text-foreground font-medium">{state.vendorName}</span>.
-              Once approved, your listing will appear under{" "}
-              <span className="text-primary font-medium">{serviceLabel}</span>.
-              Our team will review and get in touch.
+              Your listing now appears under{" "}
+              <span className="text-primary font-medium">{serviceLabel}</span>{" "}
+              and is visible to customers right away.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center">
