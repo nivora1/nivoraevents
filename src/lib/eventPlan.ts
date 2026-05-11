@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const LOCAL_KEY = "nivora_event_plan_local";
+const LOCAL_SELECTIONS_KEY = "nivora_event_plan_selections";
+
+export type VendorSelection = {
+  itemIds?: string[];
+  packageId?: string;
+};
+
+export type SelectionMap = Record<string, VendorSelection>;
 
 export const getLocalPlan = (): string[] => {
   try {
@@ -13,6 +21,19 @@ export const getLocalPlan = (): string[] => {
 
 export const setLocalPlan = (ids: string[]) => {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(ids));
+};
+
+export const getLocalSelections = (): SelectionMap => {
+  try {
+    const raw = localStorage.getItem(LOCAL_SELECTIONS_KEY);
+    return raw ? (JSON.parse(raw) as SelectionMap) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setLocalSelections = (sel: SelectionMap) => {
+  localStorage.setItem(LOCAL_SELECTIONS_KEY, JSON.stringify(sel));
 };
 
 export const getOrCreatePlanRow = async (userId: string) => {
@@ -33,11 +54,27 @@ export const getOrCreatePlanRow = async (userId: string) => {
   return created;
 };
 
-export const savePlanVendors = async (userId: string, vendorIds: string[]) => {
+export const savePlanVendors = async (
+  userId: string,
+  vendorIds: string[],
+  selections?: SelectionMap
+) => {
+  const row = await getOrCreatePlanRow(userId);
+  const update = selections
+    ? { vendor_ids: vendorIds, selections: selections as unknown as never }
+    : { vendor_ids: vendorIds };
+  const { error } = await supabase
+    .from("event_plans")
+    .update(update)
+    .eq("id", row.id);
+  if (error) throw error;
+};
+
+export const savePlanSelections = async (userId: string, selections: SelectionMap) => {
   const row = await getOrCreatePlanRow(userId);
   const { error } = await supabase
     .from("event_plans")
-    .update({ vendor_ids: vendorIds })
+    .update({ selections })
     .eq("id", row.id);
   if (error) throw error;
 };
