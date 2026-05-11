@@ -12,7 +12,14 @@ import {
 } from "@/components/ui/accordion";
 import { fetchVendorById } from "@/lib/vendorsDb";
 import { useAuth } from "@/contexts/AuthContext";
-import { getLocalPlan, setLocalPlan, savePlanVendors } from "@/lib/eventPlan";
+import {
+  getLocalPlan,
+  setLocalPlan,
+  savePlanVendors,
+  getLocalSelections,
+  setLocalSelections,
+  savePlanSelections,
+} from "@/lib/eventPlan";
 import { toast } from "sonner";
 
 const VendorDetail = () => {
