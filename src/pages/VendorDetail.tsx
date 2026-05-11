@@ -36,7 +36,18 @@ const VendorDetail = () => {
     setVendor(undefined);
     fetchVendorById(id).then((v) => {
       setVendor(v);
-      setSelectedPackageId(v?.packages?.[0]?.id);
+      // Restore previously saved selection for this vendor (if any)
+      const savedSel = id ? getLocalSelections()[id] : undefined;
+      if (savedSel?.packageId) {
+        setSelectedPackageId(savedSel.packageId);
+      } else {
+        setSelectedPackageId(v?.packages?.[0]?.id);
+      }
+      if (savedSel?.itemIds?.length) {
+        const map: Record<string, boolean> = {};
+        savedSel.itemIds.forEach((iid) => (map[iid] = true));
+        setSelectedItems(map);
+      }
     });
   }, [id]);
 
