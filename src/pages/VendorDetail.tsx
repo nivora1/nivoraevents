@@ -419,29 +419,75 @@ const VendorDetail = () => {
 
               {(() => {
                 const inPlan = planIds.includes(vendor.id);
+                const buildSelection = () => {
+                  const sel: { itemIds?: string[]; packageId?: string } = {};
+                  if (isCatering && selected.length > 0) {
+                    sel.itemIds = selected.map((s) => s.id);
+                  }
+                  if (isPhotography && selectedPackageId) {
+                    sel.packageId = selectedPackageId;
+                  }
+                  return sel;
+                };
                 const togglePlan = async () => {
                   const next = inPlan
                     ? planIds.filter((x) => x !== vendor.id)
                     : [...planIds, vendor.id];
                   setPlanIds(next);
                   setLocalPlan(next);
+
+                  const allSel = getLocalSelections();
+                  if (inPlan) {
+                    delete allSel[vendor.id];
+                  } else {
+                    allSel[vendor.id] = buildSelection();
+                  }
+                  setLocalSelections(allSel);
+
                   if (user) {
                     try {
-                      await savePlanVendors(user.id, next);
+                      await savePlanVendors(user.id, next, allSel);
                     } catch (e) {
                       console.error(e);
                     }
                   }
-                  toast.success(inPlan ? "Removed from your plan" : "Added to your plan");
+                  toast.success(
+                    inPlan
+                      ? "Removed from your plan"
+                      : "Added to your plan with your selections"
+                  );
+                };
+                const updateSelection = async () => {
+                  const allSel = getLocalSelections();
+                  allSel[vendor.id] = buildSelection();
+                  setLocalSelections(allSel);
+                  if (user) {
+                    try {
+                      await savePlanSelections(user.id, allSel);
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }
+                  toast.success("Selections updated in your plan");
                 };
                 return (
-                  <button
-                    onClick={togglePlan}
-                    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
-                  >
-                    {inPlan ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                    {inPlan ? "Remove from Plan" : "Add to Event Plan"}
-                  </button>
+                  <>
+                    <button
+                      onClick={togglePlan}
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
+                    >
+                      {inPlan ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      {inPlan ? "Remove from Plan" : "Add to Event Plan"}
+                    </button>
+                    {inPlan && (isCatering || isPhotography) && (
+                      <button
+                        onClick={updateSelection}
+                        className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full bg-secondary/15 text-secondary-foreground border border-secondary/40 px-6 py-2.5 text-xs font-medium hover:bg-secondary/25 transition-colors"
+                      >
+                        Update saved selections
+                      </button>
+                    )}
+                  </>
                 );
               })()}
             </div>
