@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { Camera, ChefHat, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -21,10 +21,10 @@ const VendorApplicationPage = () => {
   const { user, loading } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [serviceType, setServiceType] = useState<"" | "photography">("");
   const [vendorName, setVendorName] = useState("");
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
-  const [serviceType, setServiceType] = useState<"" | "photography" | "catering">("");
   const [priceRange, setPriceRange] = useState("");
   const [location, setLocation] = useState("");
   const [experience, setExperience] = useState("");
@@ -70,13 +70,12 @@ const VendorApplicationPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!vendorName.trim() || !serviceType) {
-      toast.error("Vendor name and service type are required");
+    if (!vendorName.trim() || serviceType !== "photography") {
+      toast.error("Vendor name is required");
       return;
     }
     setSubmitting(true);
     try {
-      // Upload images
       const uploadedUrls: string[] = [];
       for (const f of files) {
         const ext = f.name.split(".").pop() || "jpg";
@@ -102,7 +101,7 @@ const VendorApplicationPage = () => {
       const { error } = await supabase.from("vendors").insert({
         owner_user_id: user.id,
         vendor_name: vendorName.trim(),
-        service_type: serviceType,
+        service_type: "photography",
         description: description.trim(),
         short_description: shortDescription.trim() || description.trim().slice(0, 140),
         price_range: priceRange.trim(),
@@ -114,11 +113,11 @@ const VendorApplicationPage = () => {
         location: location.trim() || null,
         events: [],
         social: social.trim() || null,
-        status: "pending",
+        status: "approved",
       });
       if (error) throw error;
-      toast.success("Application submitted! We'll review and get back to you.");
-      navigate("/list-your-service/success", { state: { vendorName, serviceType } });
+      toast.success("Listing published!");
+      navigate("/list-your-service/success", { state: { vendorName, serviceType: "photography" } });
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || "Submission failed");
@@ -135,23 +134,76 @@ const VendorApplicationPage = () => {
     );
   }
 
+  // Step 1: choose service type
+  if (!serviceType) {
+    return (
+      <section className="py-12 md:py-20 bg-surface min-h-[80vh]">
+        <div className="mx-auto px-6 max-w-3xl">
+          <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
+            <Link to="/" className="hover:text-primary">Home</Link>
+            <span>/</span>
+            <span className="text-foreground">List Your Service</span>
+          </nav>
+
+          <div className="rounded-2xl bg-card border border-border shadow-soft overflow-hidden mb-8">
+            <div className="h-2 bg-gradient-primary" />
+            <div className="p-8 md:p-10">
+              <h1 className="text-3xl md:text-4xl text-foreground text-balance">List Your Service on Nivora</h1>
+              <p className="mt-3 text-muted-foreground leading-relaxed">
+                Choose the service you want to offer. Your listing goes live immediately after you submit.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <button
+              type="button"
+              onClick={() => setServiceType("photography")}
+              className="group rounded-2xl bg-card border border-border shadow-soft p-8 text-left hover:border-primary hover:shadow-card transition-all"
+            >
+              <div className="h-14 w-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
+                <Camera className="h-6 w-6" />
+              </div>
+              <h2 className="text-xl text-foreground mb-2">Photography</h2>
+              <p className="text-sm text-muted-foreground">Wedding, candid, cinematic and event photography & videography.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/list-your-service/catering")}
+              className="group rounded-2xl bg-card border border-border shadow-soft p-8 text-left hover:border-primary hover:shadow-card transition-all"
+            >
+              <div className="h-14 w-14 rounded-full bg-primary-soft text-primary flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
+                <ChefHat className="h-6 w-6" />
+              </div>
+              <h2 className="text-xl text-foreground mb-2">Catering</h2>
+              <p className="text-sm text-muted-foreground">Build a structured menu — starters, mains, desserts and more — with per-dish pricing.</p>
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-12 md:py-20 bg-surface min-h-[80vh]">
       <div className="mx-auto px-6 max-w-3xl">
         <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
           <Link to="/" className="hover:text-primary">Home</Link>
           <span>/</span>
-          <span className="text-foreground">List Your Service</span>
+          <button type="button" onClick={() => setServiceType("")} className="hover:text-primary">List Your Service</button>
+          <span>/</span>
+          <span className="text-foreground">Photography</span>
         </nav>
 
         <div className="rounded-2xl bg-card border border-border shadow-soft overflow-hidden mb-8">
           <div className="h-2 bg-gradient-primary" />
           <div className="p-8 md:p-10">
             <h1 className="text-3xl md:text-4xl text-foreground text-balance">
-              List Your Service on Nivora
+              Photography Listing Details
             </h1>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              Get discovered by customers and receive quality booking inquiries. Listings appear once approved.
+              Fill in your studio details and packages. Your listing goes live in Photography immediately after submission.
             </p>
           </div>
         </div>
@@ -212,14 +264,6 @@ const VendorApplicationPage = () => {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className={fieldLabel}>Service Type <span className="text-destructive">*</span></label>
-                <select required value={serviceType} onChange={(e) => setServiceType(e.target.value as any)} className={inputClass}>
-                  <option value="">Select a service type</option>
-                  <option value="photography">Photography</option>
-                  <option value="catering">Catering</option>
-                </select>
-              </div>
-              <div>
                 <label className={fieldLabel}>Price Range</label>
                 <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹30,000 – ₹1,00,000" className={inputClass} maxLength={80} />
               </div>
@@ -231,7 +275,7 @@ const VendorApplicationPage = () => {
                 <label className={fieldLabel}>Location</label>
                 <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dakshina Kannada" className={inputClass} maxLength={120} />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className={fieldLabel}>Social</label>
                 <input type="text" value={social} onChange={(e) => setSocial(e.target.value)} placeholder="@your.instagram" className={inputClass} maxLength={120} />
               </div>
@@ -277,12 +321,12 @@ const VendorApplicationPage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
-            <Link to="/" className="inline-flex items-center justify-center rounded-full border border-border px-7 py-3.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors">
-              Cancel
-            </Link>
+            <button type="button" onClick={() => setServiceType("")} className="inline-flex items-center justify-center rounded-full border border-border px-7 py-3.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors">
+              Back
+            </button>
             <button type="submit" disabled={submitting} className="inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-7 py-3.5 text-sm font-semibold shadow-soft hover:opacity-90 transition-opacity disabled:opacity-60">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Submit Application
+              Publish Listing
             </button>
           </div>
         </form>
