@@ -9,6 +9,7 @@ import Services from "./pages/Services.tsx";
 import ServiceListing from "./pages/ServiceListing.tsx";
 import VendorDetail from "./pages/VendorDetail.tsx";
 import VendorApplication from "./pages/VendorApplication.tsx";
+import CateringApplication from "./pages/CateringApplication.tsx";
 import VendorApplicationSuccess from "./pages/VendorApplicationSuccess.tsx";
 import BudgetPlanner from "./pages/BudgetPlanner.tsx";
 import GuestPlanner from "./pages/GuestPlanner.tsx";
