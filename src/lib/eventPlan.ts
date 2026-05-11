@@ -60,8 +60,9 @@ export const savePlanVendors = async (
   selections?: SelectionMap
 ) => {
   const row = await getOrCreatePlanRow(userId);
-  const update: Record<string, unknown> = { vendor_ids: vendorIds };
-  if (selections) update.selections = selections;
+  const update = selections
+    ? { vendor_ids: vendorIds, selections: selections as unknown as never }
+    : { vendor_ids: vendorIds };
   const { error } = await supabase
     .from("event_plans")
     .update(update)
