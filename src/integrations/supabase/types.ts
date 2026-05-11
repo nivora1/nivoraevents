@@ -44,6 +44,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          selections: Json
           updated_at: string
           user_id: string
           vendor_ids: Json
@@ -53,6 +54,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          selections?: Json
           updated_at?: string
           user_id: string
           vendor_ids?: Json
@@ -62,6 +64,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          selections?: Json
           updated_at?: string
           user_id?: string
           vendor_ids?: Json

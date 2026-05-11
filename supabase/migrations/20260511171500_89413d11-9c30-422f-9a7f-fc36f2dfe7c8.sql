@@ -1,0 +1,1 @@
+ALTER TABLE public.event_plans ADD COLUMN IF NOT EXISTS selections jsonb NOT NULL DEFAULT '{}'::jsonb;
