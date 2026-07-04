@@ -32,7 +32,7 @@ const Auth = () => {
     e.preventDefault();
     const parsed = credSchema.safeParse({ email, password });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return;
     }
     setSubmitting(true);
