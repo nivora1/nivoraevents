@@ -4,7 +4,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 const credSchema = z.object({
@@ -61,17 +61,16 @@ const Auth = () => {
     }
   };
 
-  const handleOAuth = async (provider: "google" | "apple") => {
+  const handleOAuth = async (provider: "google") => {
     setSubmitting(true);
-    const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/` },
     });
-    if (result.error) {
-      toast.error(`${provider === "google" ? "Google" : "Apple"} sign-in failed`);
+    if (error) {
+      toast.error("Google sign-in failed");
       setSubmitting(false);
-      return;
     }
-    if (result.redirected) return;
   };
 
   return (
