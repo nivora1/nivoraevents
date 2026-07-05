@@ -305,8 +305,23 @@ const VendorApplicationPage = () => {
                       <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, { name: e.target.value })} placeholder="e.g. Essential Wedding Coverage" className={inputClass} maxLength={120} />
                     </div>
                     <div>
-                      <label className={fieldLabel}>Price Range</label>
-                      <input type="text" value={pkg.priceRange} onChange={(e) => updatePackage(pkg.id, { priceRange: e.target.value })} placeholder="e.g. ₹30,000 – ₹80,000" className={inputClass} maxLength={80} />
+                      <label className={fieldLabel}>Price</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={pkg.price}
+                          onChange={(e) => updatePackage(pkg.id, { price: digitsOnly(e.target.value) })}
+                          placeholder="e.g. 50000"
+                          className={`${inputClass} pl-8`}
+                          maxLength={12}
+                        />
+                      </div>
+                      {pkg.price && (
+                        <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatInrShort(Number(pkg.price))}</span></p>
+                      )}
                     </div>
                     <div>
                       <label className={fieldLabel}>Package Description</label>
