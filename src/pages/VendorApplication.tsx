@@ -4,17 +4,19 @@ import { Camera, ChefHat, Loader2, Plus, Trash2, Upload, X } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { digitsOnly, formatInrShort, formatExperience } from "@/lib/format";
 
 type Pkg = {
   id: string;
   name: string;
-  priceRange: string;
+  price: string; // digits only
   description: string;
 };
 
 const fieldLabel = "block text-sm font-medium text-foreground mb-2";
 const inputClass =
   "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition";
+const previewClass = "mt-1.5 text-xs text-muted-foreground";
 
 const VendorApplicationPage = () => {
   const navigate = useNavigate();
