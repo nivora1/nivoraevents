@@ -91,12 +91,11 @@ const VendorApplicationPage = () => {
       }
 
       const cleanPackages = packages
-        .filter((p) => p.name.trim() || p.priceRange.trim() || p.description.trim())
+        .filter((p) => p.name.trim() || p.price.trim() || p.description.trim())
         .map((p) => ({
           id: p.id,
           name: p.name.trim(),
-          price: 0,
-          priceText: p.priceRange.trim(),
+          price: Number(digitsOnly(p.price)) || 0,
           description: p.description.trim(),
         }));
 
