@@ -34,7 +34,7 @@ const VendorApplicationPage = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([
-    { id: crypto.randomUUID(), name: "", priceRange: "", description: "" },
+    { id: crypto.randomUUID(), name: "", price: "", description: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
 
