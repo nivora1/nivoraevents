@@ -215,7 +215,8 @@ const BudgetPlanner = () => {
 
       {/* Categories */}
       <section className="container-narrow -mt-8 md:-mt-10">
-        <div className="space-y-6 md:space-y-8">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8 lg:items-start">
+        <div className="space-y-6 md:space-y-8 min-w-0">
           {categories.map((c, idx) => {
             const cTotals = totals.perCategory[c.key];
             return (
