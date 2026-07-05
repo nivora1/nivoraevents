@@ -329,21 +329,22 @@ const CateringApplicationPage = () => {
                             type="text"
                             value={dish.name}
                             onChange={(e) => updateDish(dish.id, { name: e.target.value })}
-                            placeholder="Dish name (e.g. Paneer Tikka)"
+                            placeholder={DISH_PLACEHOLDER[cat]}
                             className={`${inputClass} sm:flex-1`}
                             maxLength={120}
                           />
                           <div className="flex gap-2">
                             <div className="relative flex-1 sm:flex-none sm:w-40">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
                               <input
-                                type="number"
+                                type="text"
                                 inputMode="numeric"
-                                min={0}
+                                pattern="[0-9]*"
                                 value={dish.price}
-                                onChange={(e) => updateDish(dish.id, { price: e.target.value })}
+                                onChange={(e) => updateDish(dish.id, { price: digitsOnly(e.target.value) })}
                                 placeholder="Price"
                                 className={`${inputClass} pl-7`}
+                                maxLength={7}
                               />
                             </div>
                             <button
