@@ -358,7 +358,7 @@ const VendorDetail = () => {
                         {selectedPackage.name}
                       </span>
                       <span className="font-serif text-xl text-primary whitespace-nowrap">
-                        ₹{selectedPackage.price.toLocaleString("en-IN")}
+                        {formatInrShort(selectedPackage.price)}
                         {selectedPackage.priceLabel && (
                           <span className="text-muted-foreground text-sm font-normal font-sans">
                             {selectedPackage.priceLabel}
