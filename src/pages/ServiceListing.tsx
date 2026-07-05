@@ -4,6 +4,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { useEffect, useState } from "react";
 import { fetchApprovedVendors } from "@/lib/vendorsDb";
+import { displayVendorPrice } from "@/lib/format";
 
 const titles: Record<string, { title: string; subtitle: string }> = {
   photography: {
