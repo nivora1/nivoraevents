@@ -200,7 +200,7 @@ const VendorDetail = () => {
                             </div>
                             <span className="text-sm font-semibold text-primary whitespace-nowrap">
                               {pkg.price > 0
-                                ? `₹${pkg.price.toLocaleString("en-IN")}`
+                                ? formatInrShort(pkg.price)
                                 : pkg.priceText || ""}
                               {pkg.priceLabel && (
                                 <span className="text-muted-foreground font-normal">
