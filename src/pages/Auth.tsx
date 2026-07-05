@@ -63,9 +63,13 @@ const Auth = () => {
 
   const handleOAuth = async (provider: "google") => {
     setSubmitting(true);
+    const isProd = window.location.hostname === "nivoraevents.vercel.app";
+    const redirectTo = isProd
+      ? "https://nivoraevents.vercel.app/"
+      : `${window.location.origin}/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo },
     });
     if (error) {
       toast.error("Google sign-in failed");
