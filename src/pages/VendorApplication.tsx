@@ -66,7 +66,7 @@ const VendorApplicationPage = () => {
   const updatePackage = (id: string, patch: Partial<Pkg>) =>
     setPackages((p) => p.map((pkg) => (pkg.id === id ? { ...pkg, ...patch } : pkg)));
   const addPackage = () =>
-    setPackages((p) => [...p, { id: crypto.randomUUID(), name: "", priceRange: "", description: "" }]);
+    setPackages((p) => [...p, { id: crypto.randomUUID(), name: "", price: "", description: "" }]);
   const removePackage = (id: string) => setPackages((p) => p.filter((pkg) => pkg.id !== id));
 
   const handleSubmit = async (e: React.FormEvent) => {
