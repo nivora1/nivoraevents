@@ -4,6 +4,7 @@ import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { digitsOnly, formatExperience, formatInrGrouped, formatPricePerPlate } from "@/lib/format";
 
 type Category = "starters" | "main" | "desserts" | "others";
 
