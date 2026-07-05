@@ -394,8 +394,8 @@ const BudgetPlanner = () => {
                 <dd className="font-serif text-lg text-foreground">{inr(totals.est)}</dd>
               </div>
               <div className="flex items-baseline justify-between px-6 py-4">
-                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Estimated</dt>
-                <dd className="font-serif text-lg text-foreground">{inr(totals.est)}</dd>
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Actual Cost</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.act)}</dd>
               </div>
               <div className="flex items-baseline justify-between px-6 py-4">
                 <dt className="text-xs uppercase tracking-wider text-muted-foreground">Actual</dt>
