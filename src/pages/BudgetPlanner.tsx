@@ -405,11 +405,10 @@ const BudgetPlanner = () => {
                 <dt className="text-xs uppercase tracking-wider text-muted-foreground">Remaining</dt>
                 <dd
                   className={`font-serif text-lg ${
-                    totals.diff > 0 ? "text-destructive" : "text-primary"
+                    totals.act > totals.est ? "text-destructive" : "text-primary"
                   }`}
                 >
-                  {totals.diff >= 0 ? "−" : "+"}
-                  {inr(Math.abs(totals.diff))}
+                  {inr(totals.est - totals.act)}
                 </dd>
               </div>
             </dl>
