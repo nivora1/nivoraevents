@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 const links = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
-  { to: "/budget-planner", label: "Budget Planner" },
   { to: "/my-plan", label: "My Plan" },
 ];
 
