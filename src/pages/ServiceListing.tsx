@@ -91,7 +91,7 @@ const ServiceListing = () => {
                   </div>
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-xl text-foreground">{v.name}</h3>
-                    <p className="mt-1 text-sm font-medium text-secondary">{v.priceRange}</p>
+                    <p className="mt-1 text-sm font-medium text-secondary">{displayVendorPrice(v.service, v.priceRange)}</p>
                     <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">
                       {v.shortDescription}
                     </p>
