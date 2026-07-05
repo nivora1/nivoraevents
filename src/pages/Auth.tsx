@@ -96,16 +96,6 @@ const Auth = () => {
           Continue with Google
         </button>
 
-        <button
-          onClick={() => handleOAuth("apple")}
-          disabled={submitting}
-          className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-full border border-border bg-foreground text-background px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.42 2.22-1.26 3.06-.84.84-1.86 1.32-2.94 1.26-.06-1.14.42-2.28 1.26-3.06.84-.84 2.04-1.32 2.94-1.26zm3.9 17.16c-.72 1.62-1.08 2.34-2.04 3.78-1.32 1.98-3.18 4.44-5.52 4.44-2.04.06-2.58-1.32-5.34-1.32-2.76 0-3.36 1.32-5.4 1.38-2.28.06-4.02-2.16-5.34-4.14C-.6 18.6-1.14 12.3 2.4 8.94 3.9 7.44 5.94 6.54 8.1 6.54c2.1-.06 4.08 1.38 5.34 1.38 1.26 0 3.66-1.68 6.18-1.44 1.02.06 3.9.42 5.76 3.12-.12.06-3.42 2.04-3.42 6 .06 4.8 4.2 6.42 4.26 6.42-.06.12-.66 2.28-2.16 4.5z"/></svg>
-          Continue with Apple
-        </button>
-
-
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
           <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
