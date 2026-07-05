@@ -311,7 +311,7 @@ const VendorDetail = () => {
                   {vendor.experience && (
                     <div>
                       <dt className="text-xs uppercase tracking-widest text-muted-foreground">Experience</dt>
-                      <dd className="mt-1 text-sm text-foreground">{vendor.experience}</dd>
+                      <dd className="mt-1 text-sm text-foreground">{/^\d+$/.test(String(vendor.experience).trim()) ? formatExperience(vendor.experience) : vendor.experience}</dd>
                     </div>
                   )}
                   {vendor.location && (
