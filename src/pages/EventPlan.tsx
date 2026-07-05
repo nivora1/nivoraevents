@@ -13,6 +13,7 @@ import {
   type SelectionMap,
 } from "@/lib/eventPlan";
 import { dbRowToVendor } from "@/lib/vendorsDb";
+import { displayVendorPrice } from "@/lib/format";
 import type { Vendor } from "@/data/vendors";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 
@@ -149,7 +150,7 @@ const EventPlan = () => {
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="text-lg text-foreground">{v.name}</h3>
                   <p className="text-xs uppercase tracking-wider text-secondary mt-1">{v.service}</p>
-                  <p className="text-sm text-primary font-medium mt-1">{v.priceRange}</p>
+                  <p className="text-sm text-primary font-medium mt-1">{displayVendorPrice(v.service, v.priceRange)}</p>
                   {renderSelectionSummary(v)}
                   <div className="mt-4 flex gap-2">
                     <a

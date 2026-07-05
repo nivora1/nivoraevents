@@ -215,7 +215,8 @@ const BudgetPlanner = () => {
 
       {/* Categories */}
       <section className="container-narrow -mt-8 md:-mt-10">
-        <div className="space-y-6 md:space-y-8">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8 lg:items-start">
+        <div className="space-y-6 md:space-y-8 min-w-0">
           {categories.map((c, idx) => {
             const cTotals = totals.perCategory[c.key];
             return (
@@ -379,6 +380,42 @@ const BudgetPlanner = () => {
             );
           })}
         </div>
+
+        {/* Desktop sticky summary */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 rounded-2xl bg-card border border-border shadow-soft overflow-hidden">
+            <div className="px-6 py-5 border-b border-border bg-gradient-hero">
+              <h3 className="text-lg font-serif text-foreground">Budget Summary</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Updates as you type</p>
+            </div>
+            <dl className="divide-y divide-border">
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Total Budget</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.est)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Actual Cost</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.act)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Actual</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.act)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Remaining</dt>
+                <dd
+                  className={`font-serif text-lg ${
+                    totals.act > totals.est ? "text-destructive" : "text-primary"
+                  }`}
+                >
+                  {inr(totals.est - totals.act)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
+        </div>
+
 
         {/* Totals */}
         <Reveal>

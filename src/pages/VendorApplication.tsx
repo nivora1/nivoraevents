@@ -4,17 +4,19 @@ import { Camera, ChefHat, Loader2, Plus, Trash2, Upload, X } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { digitsOnly, formatInrShort, formatExperience } from "@/lib/format";
 
 type Pkg = {
   id: string;
   name: string;
-  priceRange: string;
+  price: string; // digits only
   description: string;
 };
 
 const fieldLabel = "block text-sm font-medium text-foreground mb-2";
 const inputClass =
   "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition";
+const previewClass = "mt-1.5 text-xs text-muted-foreground";
 
 const VendorApplicationPage = () => {
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ const VendorApplicationPage = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([
-    { id: crypto.randomUUID(), name: "", priceRange: "", description: "" },
+    { id: crypto.randomUUID(), name: "", price: "", description: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,7 +66,7 @@ const VendorApplicationPage = () => {
   const updatePackage = (id: string, patch: Partial<Pkg>) =>
     setPackages((p) => p.map((pkg) => (pkg.id === id ? { ...pkg, ...patch } : pkg)));
   const addPackage = () =>
-    setPackages((p) => [...p, { id: crypto.randomUUID(), name: "", priceRange: "", description: "" }]);
+    setPackages((p) => [...p, { id: crypto.randomUUID(), name: "", price: "", description: "" }]);
   const removePackage = (id: string) => setPackages((p) => p.filter((pkg) => pkg.id !== id));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,12 +91,11 @@ const VendorApplicationPage = () => {
       }
 
       const cleanPackages = packages
-        .filter((p) => p.name.trim() || p.priceRange.trim() || p.description.trim())
+        .filter((p) => p.name.trim() || p.price.trim() || p.description.trim())
         .map((p) => ({
           id: p.id,
           name: p.name.trim(),
-          price: 0,
-          priceText: p.priceRange.trim(),
+          price: Number(digitsOnly(p.price)) || 0,
           description: p.description.trim(),
         }));
 
@@ -264,16 +265,43 @@ const VendorApplicationPage = () => {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className={fieldLabel}>Price Range</label>
-                <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹30,000 – ₹1,00,000" className={inputClass} maxLength={80} />
+                <label className={fieldLabel}>Starting Price</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(digitsOnly(e.target.value))}
+                    placeholder="e.g. 30000"
+                    className={`${inputClass} pl-8`}
+                    maxLength={12}
+                  />
+                </div>
+                {priceRange && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatInrShort(Number(priceRange))}</span></p>
+                )}
               </div>
               <div>
-                <label className={fieldLabel}>Experience</label>
-                <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 5 years" className={inputClass} maxLength={60} />
+                <label className={fieldLabel}>Experience (years)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={experience}
+                  onChange={(e) => setExperience(digitsOnly(e.target.value).slice(0, 2))}
+                  placeholder="e.g. 5"
+                  className={inputClass}
+                  maxLength={2}
+                />
+                {experience && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatExperience(experience)}</span></p>
+                )}
               </div>
               <div>
                 <label className={fieldLabel}>Location</label>
-                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dakshina Kannada" className={inputClass} maxLength={120} />
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Bengaluru" className={inputClass} maxLength={120} />
               </div>
               <div>
                 <label className={fieldLabel}>Social</label>
@@ -304,8 +332,23 @@ const VendorApplicationPage = () => {
                       <input type="text" value={pkg.name} onChange={(e) => updatePackage(pkg.id, { name: e.target.value })} placeholder="e.g. Essential Wedding Coverage" className={inputClass} maxLength={120} />
                     </div>
                     <div>
-                      <label className={fieldLabel}>Price Range</label>
-                      <input type="text" value={pkg.priceRange} onChange={(e) => updatePackage(pkg.id, { priceRange: e.target.value })} placeholder="e.g. ₹30,000 – ₹80,000" className={inputClass} maxLength={80} />
+                      <label className={fieldLabel}>Price</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={pkg.price}
+                          onChange={(e) => updatePackage(pkg.id, { price: digitsOnly(e.target.value) })}
+                          placeholder="e.g. 50000"
+                          className={`${inputClass} pl-8`}
+                          maxLength={12}
+                        />
+                      </div>
+                      {pkg.price && (
+                        <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatInrShort(Number(pkg.price))}</span></p>
+                      )}
                     </div>
                     <div>
                       <label className={fieldLabel}>Package Description</label>

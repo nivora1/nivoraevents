@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { fetchVendorById } from "@/lib/vendorsDb";
+import { displayVendorPrice, formatInrShort, formatExperience } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getLocalPlan,
@@ -107,7 +108,7 @@ const VendorDetail = () => {
           <h1 className="mt-3 text-4xl md:text-5xl text-foreground text-balance">
             {vendor.name}
           </h1>
-          <p className="mt-3 text-lg font-medium text-primary">{vendor.priceRange}</p>
+          <p className="mt-3 text-lg font-medium text-primary">{displayVendorPrice(vendor.service, vendor.priceRange)}</p>
           <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
         </div>
 
@@ -199,7 +200,7 @@ const VendorDetail = () => {
                             </div>
                             <span className="text-sm font-semibold text-primary whitespace-nowrap">
                               {pkg.price > 0
-                                ? `₹${pkg.price.toLocaleString("en-IN")}`
+                                ? formatInrShort(pkg.price)
                                 : pkg.priceText || ""}
                               {pkg.priceLabel && (
                                 <span className="text-muted-foreground font-normal">
@@ -310,7 +311,7 @@ const VendorDetail = () => {
                   {vendor.experience && (
                     <div>
                       <dt className="text-xs uppercase tracking-widest text-muted-foreground">Experience</dt>
-                      <dd className="mt-1 text-sm text-foreground">{vendor.experience}</dd>
+                      <dd className="mt-1 text-sm text-foreground">{/^\d+$/.test(String(vendor.experience).trim()) ? formatExperience(vendor.experience) : vendor.experience}</dd>
                     </div>
                   )}
                   {vendor.location && (
@@ -339,8 +340,8 @@ const VendorDetail = () => {
           {/* Booking card */}
           <aside className="lg:col-span-1">
             <div className="sticky top-28 rounded-2xl border border-border bg-card p-7 shadow-card">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Price range</p>
-              <p className="mt-1 font-serif text-2xl text-foreground">{vendor.priceRange}</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">{vendor.service === "catering" ? "Price per plate" : "Starting price"}</p>
+              <p className="mt-1 font-serif text-2xl text-foreground">{displayVendorPrice(vendor.service, vendor.priceRange)}</p>
               <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
 
               {isCatering && menu.length > 0 && (
@@ -357,7 +358,7 @@ const VendorDetail = () => {
                         {selectedPackage.name}
                       </span>
                       <span className="font-serif text-xl text-primary whitespace-nowrap">
-                        ₹{selectedPackage.price.toLocaleString("en-IN")}
+                        {formatInrShort(selectedPackage.price)}
                         {selectedPackage.priceLabel && (
                           <span className="text-muted-foreground text-sm font-normal font-sans">
                             {selectedPackage.priceLabel}

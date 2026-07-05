@@ -4,6 +4,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { useEffect, useState } from "react";
 import { fetchApprovedVendors } from "@/lib/vendorsDb";
+import { displayVendorPrice } from "@/lib/format";
 
 const titles: Record<string, { title: string; subtitle: string }> = {
   photography: {
@@ -91,7 +92,7 @@ const ServiceListing = () => {
                   </div>
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-xl text-foreground">{v.name}</h3>
-                    <p className="mt-1 text-sm font-medium text-secondary">{v.priceRange}</p>
+                    <p className="mt-1 text-sm font-medium text-secondary">{displayVendorPrice(v.service, v.priceRange)}</p>
                     <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1">
                       {v.shortDescription}
                     </p>

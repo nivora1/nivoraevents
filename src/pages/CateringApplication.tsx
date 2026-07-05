@@ -4,6 +4,7 @@ import { Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { digitsOnly, formatExperience, formatInrGrouped, formatPricePerPlate } from "@/lib/format";
 
 type Category = "starters" | "main" | "desserts" | "others";
 
@@ -23,9 +24,17 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 const CATEGORY_ORDER: Category[] = ["starters", "main", "desserts", "others"];
 
+const DISH_PLACEHOLDER: Record<Category, string> = {
+  starters: "Dish name (e.g. Paneer Tikka)",
+  main: "Dish name (e.g. Biryani)",
+  desserts: "Dish name (e.g. Ice Cream)",
+  others: "Dish name (e.g. Soft Drink)",
+};
+
 const fieldLabel = "block text-sm font-medium text-foreground mb-2";
 const inputClass =
   "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition";
+const previewClass = "mt-1.5 text-xs text-muted-foreground";
 
 const newDish = (category: Category): Dish => ({
   id: crypto.randomUUID(),
@@ -243,16 +252,43 @@ const CateringApplicationPage = () => {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className={fieldLabel}>Price Range</label>
-                <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹170 – ₹250 / plate" className={inputClass} maxLength={80} />
+                <label className={fieldLabel}>Price per Plate</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(digitsOnly(e.target.value))}
+                    placeholder="e.g. 750"
+                    className={`${inputClass} pl-8`}
+                    maxLength={7}
+                  />
+                </div>
+                {priceRange && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatPricePerPlate(priceRange)}</span></p>
+                )}
               </div>
               <div>
-                <label className={fieldLabel}>Experience</label>
-                <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 7 years" className={inputClass} maxLength={60} />
+                <label className={fieldLabel}>Experience (years)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={experience}
+                  onChange={(e) => setExperience(digitsOnly(e.target.value).slice(0, 2))}
+                  placeholder="e.g. 7"
+                  className={inputClass}
+                  maxLength={2}
+                />
+                {experience && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatExperience(experience)}</span></p>
+                )}
               </div>
               <div>
                 <label className={fieldLabel}>Location</label>
-                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dakshina Kannada" className={inputClass} maxLength={120} />
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Bengaluru" className={inputClass} maxLength={120} />
               </div>
               <div>
                 <label className={fieldLabel}>Social</label>
@@ -293,21 +329,22 @@ const CateringApplicationPage = () => {
                             type="text"
                             value={dish.name}
                             onChange={(e) => updateDish(dish.id, { name: e.target.value })}
-                            placeholder="Dish name (e.g. Paneer Tikka)"
+                            placeholder={DISH_PLACEHOLDER[cat]}
                             className={`${inputClass} sm:flex-1`}
                             maxLength={120}
                           />
                           <div className="flex gap-2">
                             <div className="relative flex-1 sm:flex-none sm:w-40">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
                               <input
-                                type="number"
+                                type="text"
                                 inputMode="numeric"
-                                min={0}
+                                pattern="[0-9]*"
                                 value={dish.price}
-                                onChange={(e) => updateDish(dish.id, { price: e.target.value })}
+                                onChange={(e) => updateDish(dish.id, { price: digitsOnly(e.target.value) })}
                                 placeholder="Price"
                                 className={`${inputClass} pl-7`}
+                                maxLength={7}
                               />
                             </div>
                             <button
