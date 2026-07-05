@@ -13,6 +13,7 @@ import {
   type SelectionMap,
 } from "@/lib/eventPlan";
 import { dbRowToVendor } from "@/lib/vendorsDb";
+import { displayVendorPrice } from "@/lib/format";
 import type { Vendor } from "@/data/vendors";
 import { buildBookingWhatsAppUrl } from "@/lib/contact";
 
