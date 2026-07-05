@@ -108,7 +108,7 @@ const VendorDetail = () => {
           <h1 className="mt-3 text-4xl md:text-5xl text-foreground text-balance">
             {vendor.name}
           </h1>
-          <p className="mt-3 text-lg font-medium text-primary">{vendor.priceRange}</p>
+          <p className="mt-3 text-lg font-medium text-primary">{displayVendorPrice(vendor.service, vendor.priceRange)}</p>
           <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
         </div>
 
