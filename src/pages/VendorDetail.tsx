@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { fetchVendorById } from "@/lib/vendorsDb";
+import { displayVendorPrice, formatInrShort, formatExperience } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getLocalPlan,
