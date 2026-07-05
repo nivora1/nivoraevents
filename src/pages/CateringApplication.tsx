@@ -252,16 +252,43 @@ const CateringApplicationPage = () => {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className={fieldLabel}>Price Range</label>
-                <input type="text" value={priceRange} onChange={(e) => setPriceRange(e.target.value)} placeholder="e.g. ₹170 – ₹250 / plate" className={inputClass} maxLength={80} />
+                <label className={fieldLabel}>Price per Plate</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(digitsOnly(e.target.value))}
+                    placeholder="e.g. 750"
+                    className={`${inputClass} pl-8`}
+                    maxLength={7}
+                  />
+                </div>
+                {priceRange && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatPricePerPlate(priceRange)}</span></p>
+                )}
               </div>
               <div>
-                <label className={fieldLabel}>Experience</label>
-                <input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 7 years" className={inputClass} maxLength={60} />
+                <label className={fieldLabel}>Experience (years)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={experience}
+                  onChange={(e) => setExperience(digitsOnly(e.target.value).slice(0, 2))}
+                  placeholder="e.g. 7"
+                  className={inputClass}
+                  maxLength={2}
+                />
+                {experience && (
+                  <p className={previewClass}>Will appear as: <span className="text-foreground font-medium">{formatExperience(experience)}</span></p>
+                )}
               </div>
               <div>
                 <label className={fieldLabel}>Location</label>
-                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dakshina Kannada" className={inputClass} maxLength={120} />
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Bengaluru" className={inputClass} maxLength={120} />
               </div>
               <div>
                 <label className={fieldLabel}>Social</label>
