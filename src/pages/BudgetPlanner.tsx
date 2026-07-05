@@ -381,6 +381,43 @@ const BudgetPlanner = () => {
           })}
         </div>
 
+        {/* Desktop sticky summary */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 rounded-2xl bg-card border border-border shadow-soft overflow-hidden">
+            <div className="px-6 py-5 border-b border-border bg-gradient-hero">
+              <h3 className="text-lg font-serif text-foreground">Budget Summary</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Updates as you type</p>
+            </div>
+            <dl className="divide-y divide-border">
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Total Budget</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.est)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Estimated</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.est)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Actual</dt>
+                <dd className="font-serif text-lg text-foreground">{inr(totals.act)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between px-6 py-4">
+                <dt className="text-xs uppercase tracking-wider text-muted-foreground">Remaining</dt>
+                <dd
+                  className={`font-serif text-lg ${
+                    totals.diff > 0 ? "text-destructive" : "text-primary"
+                  }`}
+                >
+                  {totals.diff >= 0 ? "−" : "+"}
+                  {inr(Math.abs(totals.diff))}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </aside>
+        </div>
+
+
         {/* Totals */}
         <Reveal>
           <div className="mt-10 bg-card border border-border rounded-2xl shadow-card overflow-hidden">
