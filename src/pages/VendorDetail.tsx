@@ -340,8 +340,8 @@ const VendorDetail = () => {
           {/* Booking card */}
           <aside className="lg:col-span-1">
             <div className="sticky top-28 rounded-2xl border border-border bg-card p-7 shadow-card">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Price range</p>
-              <p className="mt-1 font-serif text-2xl text-foreground">{vendor.priceRange}</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">{vendor.service === "catering" ? "Price per plate" : "Starting price"}</p>
+              <p className="mt-1 font-serif text-2xl text-foreground">{displayVendorPrice(vendor.service, vendor.priceRange)}</p>
               <p className="mt-1 text-xs text-muted-foreground italic">*Prices are negotiable</p>
 
               {isCatering && menu.length > 0 && (
