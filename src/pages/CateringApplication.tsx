@@ -24,9 +24,17 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 const CATEGORY_ORDER: Category[] = ["starters", "main", "desserts", "others"];
 
+const DISH_PLACEHOLDER: Record<Category, string> = {
+  starters: "Dish name (e.g. Paneer Tikka)",
+  main: "Dish name (e.g. Biryani)",
+  desserts: "Dish name (e.g. Ice Cream)",
+  others: "Dish name (e.g. Soft Drink)",
+};
+
 const fieldLabel = "block text-sm font-medium text-foreground mb-2";
 const inputClass =
   "w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition";
+const previewClass = "mt-1.5 text-xs text-muted-foreground";
 
 const newDish = (category: Category): Dish => ({
   id: crypto.randomUUID(),
