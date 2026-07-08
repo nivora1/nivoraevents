@@ -95,15 +95,15 @@ const WeddingProfileSummary = ({ profile, onSave }: Props) => {
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <span className="text-xs uppercase tracking-[0.25em] text-secondary font-semibold">
-                  Wedding Profile
+                  ✨ Your Wedding Profile
                 </span>
-                <h2 className="mt-2 text-2xl md:text-3xl font-serif text-foreground">
+                <h2 className="mt-3 text-3xl md:text-5xl font-serif text-foreground leading-tight tracking-tight">
                   {profile.partner1 && profile.partner2
-                    ? `${profile.partner1} & ${profile.partner2}`
+                    ? `${titleCase(profile.partner1)} & ${titleCase(profile.partner2)}`
                     : "Your Wedding"}
                 </h2>
-                <p className="mt-1.5 text-sm text-muted-foreground inline-flex items-center gap-1.5">
-                  <Check className="h-3.5 w-3.5 text-primary" /> Personalising your planning
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Building your dream celebration ✨
                 </p>
               </div>
               <button
@@ -114,25 +114,73 @@ const WeddingProfileSummary = ({ profile, onSave }: Props) => {
               </button>
             </div>
 
+            {/* Journey progress */}
+            {(() => {
+              const done = PLANNING_MODULES.filter((m) => m.isDone(profile)).length;
+              const pct = Math.round((done / PLANNING_MODULES.length) * 100);
+              return (
+                <div className="mt-6 rounded-2xl border border-border/60 bg-card/60 p-4">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-foreground">Wedding Journey</span>
+                    <span className="text-muted-foreground">{pct}% Complete</span>
+                  </div>
+                  <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      className="h-full bg-primary rounded-full"
+                    />
+                  </div>
+                  <ul className="mt-4 space-y-2">
+                    {PLANNING_MODULES.map((m) => {
+                      const done = m.isDone(profile);
+                      return (
+                        <li key={m.key} className="flex items-center gap-2.5 text-sm">
+                          {done ? (
+                            <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground/50" strokeWidth={1.5} />
+                          )}
+                          <span className={done ? "text-foreground" : "text-muted-foreground"}>
+                            {m.label}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })()}
+
             <dl className="mt-6">
               <Row
                 label="Wedding Type"
                 value={
-                  profile.weddingType
-                    ? `${profile.weddingType}${profile.community ? ` · ${profile.community}` : ""}`
-                    : undefined
+                  profile.weddingType || profile.community ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {profile.weddingType && <Chip tone="primary">{profile.weddingType}</Chip>}
+                      {profile.community && <Chip>{profile.community}</Chip>}
+                    </div>
+                  ) : undefined
                 }
               />
               <Row
                 label="Location"
                 value={
-                  profile.city
-                    ? `${profile.city}${profile.state ? `, ${profile.state}` : ""}${
-                        profile.locationType === "destination" && profile.destinationCity
-                          ? ` → ${profile.destinationCity}`
-                          : ""
-                      }`
-                    : undefined
+                  profile.city ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      <Chip>
+                        {profile.city}
+                        {profile.state ? `, ${profile.state}` : ""}
+                      </Chip>
+                      {profile.locationType === "destination" && profile.destinationCity && (
+                        <Chip tone="primary">→ {profile.destinationCity}</Chip>
+                      )}
+                    </div>
+                  ) : undefined
                 }
               />
               <Row
@@ -141,13 +189,10 @@ const WeddingProfileSummary = ({ profile, onSave }: Props) => {
                   profile.events?.length ? (
                     <div className="flex flex-wrap gap-1.5">
                       {profile.events.map((e) => (
-                        <span
-                          key={e.name}
-                          className="inline-flex items-center rounded-full bg-card border border-border px-2.5 py-0.5 text-[11px]"
-                        >
+                        <Chip key={e.name}>
                           {e.name}
                           {e.date ? ` · ${e.date}` : ""}
-                        </span>
+                        </Chip>
                       ))}
                     </div>
                   ) : undefined
@@ -159,12 +204,9 @@ const WeddingProfileSummary = ({ profile, onSave }: Props) => {
                   profile.styles?.length ? (
                     <div className="flex flex-wrap gap-1.5">
                       {profile.styles.map((s) => (
-                        <span
-                          key={s}
-                          className="inline-flex items-center rounded-full bg-primary-soft/60 text-primary px-2.5 py-0.5 text-[11px] font-medium"
-                        >
+                        <Chip key={s} tone="primary">
                           {s}
-                        </span>
+                        </Chip>
                       ))}
                     </div>
                   ) : undefined
@@ -192,15 +234,33 @@ const WeddingProfileSummary = ({ profile, onSave }: Props) => {
               />
               <Row
                 label="Already Booked"
-                value={profile.booked?.length ? profile.booked.join(", ") : undefined}
+                value={
+                  profile.booked?.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {profile.booked.map((b) => (
+                        <Chip key={b}>{b}</Chip>
+                      ))}
+                    </div>
+                  ) : undefined
+                }
               />
               <Row label="Notes" value={profile.notes} />
               <Row
                 label="Contact"
                 value={
-                  profile.phone || profile.email
-                    ? [profile.phone, profile.email].filter(Boolean).join(" · ")
-                    : undefined
+                  profile.phone || profile.email ? (
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {profile.phone && (
+                        <Chip>
+                          <span className="inline-flex items-center gap-1">
+                            {maskPhone(profile.phone)}
+                            <Check className="h-3 w-3 text-primary" />
+                          </span>
+                        </Chip>
+                      )}
+                      {profile.email && <Chip>{profile.email}</Chip>}
+                    </div>
+                  ) : undefined
                 }
               />
             </dl>
