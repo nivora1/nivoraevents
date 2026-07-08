@@ -3,8 +3,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Check, Loader2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { STEPS } from "./steps";
+import { STEPS, type StepDef } from "./steps";
 import type { WeddingProfile } from "@/lib/weddingProfile";
+
+/**
+ * Render each step as its own component so any hooks inside a step
+ * belong to that step's fiber, not the parent Flow. Without this,
+ * moving between steps whose renderers use different numbers of hooks
+ * (e.g. Card1 = 0, Card2 = 1 useState) triggers
+ * "Rendered more hooks than during the previous render."
+ */
+const StepRenderer = ({
+  step,
+  value,
+  update,
+}: {
+  step: StepDef;
+  value: WeddingProfile;
+  update: (patch: Partial<WeddingProfile>) => void;
+}) => <>{step.render({ value, update })}</>;
 
 type Props = {
   initial: WeddingProfile;
@@ -141,7 +158,7 @@ const WeddingProfileFlow = ({ initial, onComplete, onCancel, submitLabel }: Prop
               <p className="mt-1.5 text-sm text-muted-foreground">{step.hint}</p>
             )}
             <div className="mt-6">
-              {step.render({ value: data, update })}
+              <StepRenderer step={step} value={data} update={update} />
             </div>
           </motion.div>
         </AnimatePresence>
