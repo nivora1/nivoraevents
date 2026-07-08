@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -141,9 +141,32 @@ const COMMUNITIES = [
 
 const Card2 = ({ value, update }: StepProps) => {
   const [query, setQuery] = useState(value.community ?? "");
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const trimmed = query.trim();
   const filtered = COMMUNITIES.filter((c) =>
-    c.toLowerCase().includes(query.toLowerCase())
-  ).slice(0, 6);
+    c.toLowerCase().includes(trimmed.toLowerCase())
+  );
+  const showCustom =
+    trimmed.length > 0 &&
+    !COMMUNITIES.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+
+  const select = (val: string) => {
+    setQuery(val);
+    update({ community: val });
+    setOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -172,31 +195,83 @@ const Card2 = ({ value, update }: StepProps) => {
         </div>
       </div>
       <div>
-        <FieldLabel>Community / Tradition</FieldLabel>
-        <Input
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            update({ community: e.target.value });
-          }}
-          placeholder="Search or type your community"
-        />
-        {query && filtered.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {filtered.map((c) => (
-              <Chip
-                key={c}
-                active={value.community === c}
-                onClick={() => {
-                  setQuery(c);
-                  update({ community: c });
-                }}
-              >
-                {c}
-              </Chip>
-            ))}
+        <FieldLabel>Community / Tradition (optional)</FieldLabel>
+        <div ref={wrapRef} className="relative">
+          <div className="relative">
+            <Input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                update({ community: e.target.value });
+                setOpen(true);
+              }}
+              onFocus={() => setOpen(true)}
+              onClick={() => setOpen(true)}
+              placeholder="Optional – Select or type your community/tradition"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              aria-label="Toggle community options"
+              onClick={() => setOpen((o) => !o)}
+              className="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  open && "rotate-180"
+                )}
+              />
+            </button>
           </div>
-        )}
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute z-50 mt-2 w-full rounded-xl border border-border bg-popover shadow-elegant overflow-hidden"
+              >
+                <div className="max-h-64 overflow-y-auto py-1">
+                  {filtered.length === 0 && !showCustom && (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      No matches
+                    </div>
+                  )}
+                  {filtered.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => select(c)}
+                      className={cn(
+                        "w-full text-left px-4 py-2.5 text-sm hover:bg-primary-soft/60 transition-colors flex items-center justify-between",
+                        value.community === c && "bg-primary-soft/40"
+                      )}
+                    >
+                      <span>{c}</span>
+                      {value.community === c && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                  {showCustom && (
+                    <button
+                      type="button"
+                      onClick={() => select(trimmed)}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary-soft/60 transition-colors flex items-center gap-2 border-t border-border"
+                    >
+                      <Plus className="h-4 w-4 text-primary" />
+                      <span>
+                        Use "<span className="font-medium">{trimmed}</span>"
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
@@ -569,7 +644,7 @@ export const STEPS: StepDef[] = [
     progressMsg: "🌸 Your wedding is starting to take shape.",
     cta: "Tell Us More →",
     render: Card2,
-    isValid: (v) => !!(v.weddingType && v.community?.trim()),
+    isValid: (v) => !!v.weddingType,
   },
   {
     id: "events",
