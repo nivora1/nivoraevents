@@ -141,7 +141,7 @@ const WeddingProfileFlow = ({ initial, onComplete, onCancel, submitLabel }: Prop
               <p className="mt-1.5 text-sm text-muted-foreground">{step.hint}</p>
             )}
             <div className="mt-6">
-              {step.render({ value: data, update })}
+              <StepRenderer step={step} value={data} update={update} />
             </div>
           </motion.div>
         </AnimatePresence>
