@@ -644,7 +644,7 @@ export const STEPS: StepDef[] = [
     progressMsg: "🌸 Your wedding is starting to take shape.",
     cta: "Tell Us More →",
     render: Card2,
-    isValid: (v) => !!(v.weddingType && v.community?.trim()),
+    isValid: (v) => !!v.weddingType,
   },
   {
     id: "events",
