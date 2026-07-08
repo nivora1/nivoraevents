@@ -1,8 +1,47 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check } from "lucide-react";
+import { Pencil, Check, Circle } from "lucide-react";
 import type { WeddingProfile } from "@/lib/weddingProfile";
 import WeddingProfileFlow from "./WeddingProfileFlow";
+
+const titleCase = (s?: string) =>
+  s
+    ? s
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : "";
+
+const maskPhone = (raw?: string) => {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 4) return raw;
+  const last4 = digits.slice(-4);
+  const cc = raw.trim().startsWith("+")
+    ? raw.trim().split(/\s|-/)[0]
+    : digits.length > 10
+      ? `+${digits.slice(0, digits.length - 10)}`
+      : "+91";
+  return `${cc} ••••••${last4}`;
+};
+
+const Chip = ({ children, tone = "default" }: { children: React.ReactNode; tone?: "default" | "primary" }) => (
+  <span
+    className={
+      tone === "primary"
+        ? "inline-flex items-center rounded-full bg-primary-soft/60 text-primary px-2.5 py-0.5 text-[11px] font-medium"
+        : "inline-flex items-center rounded-full bg-card border border-border px-2.5 py-0.5 text-[11px]"
+    }
+  >
+    {children}
+  </span>
+);
+
+const PLANNING_MODULES: { key: string; label: string; isDone: (p: WeddingProfile) => boolean }[] = [
+  { key: "profile", label: "Wedding Profile Completed", isDone: () => true },
+  { key: "budget", label: "Budget Planning", isDone: () => false },
+  { key: "guests", label: "Guest Planning", isDone: () => false },
+];
 
 type Props = {
   profile: WeddingProfile;
