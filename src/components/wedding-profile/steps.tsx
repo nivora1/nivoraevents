@@ -808,9 +808,25 @@ export const STEPS: StepDef[] = [
     progressMsg: "💍 We're building your Wedding Profile.",
     cta: "Onward →",
     render: Card4,
-    isValid: (v) =>
-      !!(v.city?.trim() && v.locationType) &&
-      (v.locationType !== "destination" || !!v.destinationCity?.trim()),
+    isValid: (v) => !!(v.city?.trim() && v.locationType),
+  },
+  {
+    id: "destination",
+    title: "✈️ Tell us a little about your destination wedding",
+    hint: "A few quick details now will help us recommend the right venues and plan guest logistics later.",
+    progressMsg: "✈️ Dreaming up your destination celebration.",
+    cta: "Onward →",
+    render: CardDestination,
+    isValid: (v) => !!v.destinationCity?.trim(),
+  },
+  {
+    id: "planningStage",
+    title: "💫 Where are you in your wedding planning journey?",
+    hint: "This helps us personalise your planning experience and recommendations.",
+    progressMsg: "💫 Meeting you where you are.",
+    cta: "Continue →",
+    render: CardPlanningStage,
+    isValid: (v) => !!v.planningStage,
   },
   {
     id: "booked",
