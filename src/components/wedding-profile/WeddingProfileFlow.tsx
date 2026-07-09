@@ -37,9 +37,17 @@ const WeddingProfileFlow = ({ initial, onComplete, onCancel, submitLabel }: Prop
   const [direction, setDirection] = useState(1);
   const [done, setDone] = useState(false);
 
-  const step = STEPS[idx];
-  const progress = ((idx + 1) / STEPS.length) * 100;
-  const isLast = idx === STEPS.length - 1;
+  const steps = useMemo(
+    () =>
+      STEPS.filter(
+        (s) => s.id !== "destination" || data.locationType === "destination"
+      ),
+    [data.locationType]
+  );
+  const safeIdx = Math.min(idx, steps.length - 1);
+  const step = steps[safeIdx];
+  const progress = ((safeIdx + 1) / steps.length) * 100;
+  const isLast = safeIdx === steps.length - 1;
   const valid = step.isValid(data);
 
   const update = (patch: Partial<WeddingProfile>) =>

@@ -299,7 +299,7 @@ const Card3 = ({ value, update }: StepProps) => {
   const toggle = (name: string) => {
     const exists = events.find((e) => e.name === name);
     if (exists) update({ events: events.filter((e) => e.name !== name) });
-    else update({ events: [...events, { name, dateType: "tentative" }] });
+    else update({ events: [...events, { name, dateType: "exact" }] });
   };
   const patchEvent = (name: string, patch: Partial<EventEntry>) => {
     update({
@@ -374,6 +374,25 @@ const Card3 = ({ value, update }: StepProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="pt-2">
+        <FieldLabel>How flexible are your wedding dates overall?</FieldLabel>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { v: "fixed", l: "Fixed" },
+            { v: "few-days", l: "Flexible by a few days" },
+            { v: "few-weeks", l: "Flexible by a few weeks" },
+            { v: "exploring", l: "Still exploring" },
+          ] as const).map((o) => (
+            <Chip
+              key={o.v}
+              active={value.dateFlexibility === o.v}
+              onClick={() => update({ dateFlexibility: o.v })}
+            >
+              {o.l}
+            </Chip>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
@@ -421,15 +440,141 @@ const Card4 = ({ value, update }: StepProps) => (
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
         >
-          <FieldLabel>Destination City</FieldLabel>
-          <Input
-            value={value.destinationCity ?? ""}
-            onChange={(e) => update({ destinationCity: e.target.value })}
-            placeholder="Udaipur, Goa, Jaipur…"
-          />
+          <p className="text-xs text-muted-foreground italic">
+            Great — we'll ask a few destination details next.
+          </p>
         </motion.div>
       )}
     </AnimatePresence>
+  </div>
+);
+
+/* ---------- Destination Details Card (conditional) ---------- */
+
+const CardDestination = ({ value, update }: StepProps) => (
+  <div className="space-y-5">
+    <div>
+      <FieldLabel>Destination City *</FieldLabel>
+      <Input
+        value={value.destinationCity ?? ""}
+        onChange={(e) => update({ destinationCity: e.target.value })}
+        placeholder="Udaipur, Goa, Jaipur…"
+      />
+    </div>
+    <div>
+      <FieldLabel>Destination Venue (optional)</FieldLabel>
+      <Input
+        value={value.destinationVenue ?? ""}
+        onChange={(e) => update({ destinationVenue: e.target.value })}
+        placeholder="If you've already shortlisted or booked one."
+      />
+    </div>
+    <div>
+      <FieldLabel>Will guests need accommodation?</FieldLabel>
+      <div className="flex flex-wrap gap-2">
+        {([
+          { v: "yes", l: "Yes" },
+          { v: "no", l: "No" },
+          { v: "not-sure", l: "Not sure yet" },
+        ] as const).map((o) => (
+          <Chip
+            key={o.v}
+            active={value.guestsAccommodation === o.v}
+            onClick={() => update({ guestsAccommodation: o.v })}
+          >
+            {o.l}
+          </Chip>
+        ))}
+      </div>
+    </div>
+    <div>
+      <FieldLabel>Will you arrange transportation for guests?</FieldLabel>
+      <div className="flex flex-wrap gap-2">
+        {([
+          { v: "yes", l: "Yes" },
+          { v: "no", l: "No" },
+          { v: "not-sure", l: "Not sure yet" },
+        ] as const).map((o) => (
+          <Chip
+            key={o.v}
+            active={value.guestsTransportation === o.v}
+            onClick={() => update({ guestsTransportation: o.v })}
+          >
+            {o.l}
+          </Chip>
+        ))}
+      </div>
+    </div>
+    <div>
+      <FieldLabel>Approximate number of travelling guests (optional)</FieldLabel>
+      <Input
+        type="number"
+        inputMode="numeric"
+        value={value.travellingGuests ?? ""}
+        onChange={(e) => update({ travellingGuests: e.target.value })}
+        placeholder="e.g. 120"
+      />
+    </div>
+    <div>
+      <FieldLabel>Anything else about your destination wedding? (optional)</FieldLabel>
+      <Textarea
+        value={value.destinationNotes ?? ""}
+        onChange={(e) => update({ destinationNotes: e.target.value })}
+        placeholder="Multiple cities, international guests, travel plans, venue ideas, or anything else you'd like us to know."
+        rows={5}
+      />
+    </div>
+  </div>
+);
+
+/* ---------- Planning Stage Card ---------- */
+
+const PLANNING_STAGES = [
+  { v: "exploring", emoji: "🌱", label: "Just Exploring", sub: "I'm gathering ideas and comparing options." },
+  { v: "engaged", emoji: "💍", label: "Recently Engaged", sub: "We're starting to plan our wedding." },
+  { v: "started", emoji: "📋", label: "Started Planning", sub: "We're making decisions and beginning vendor bookings." },
+  { v: "some-booked", emoji: "✅", label: "Booked a Few Vendors", sub: "Some major things are already sorted." },
+  { v: "almost-done", emoji: "🎉", label: "Almost Everything is Booked", sub: "We're putting the finishing touches together." },
+];
+
+const CardPlanningStage = ({ value, update }: StepProps) => (
+  <div className="grid gap-3">
+    {PLANNING_STAGES.map((s) => {
+      const active = value.planningStage === s.v;
+      return (
+        <motion.button
+          key={s.v}
+          type="button"
+          whileTap={{ scale: 0.98 }}
+          onClick={() => update({ planningStage: s.v })}
+          className={cn(
+            "relative w-full text-left rounded-2xl border p-4 md:p-5 flex items-start gap-4 transition-all duration-300",
+            active
+              ? "border-primary bg-gradient-to-br from-primary-soft to-secondary-soft shadow-elegant"
+              : "border-border bg-card hover:border-primary/40"
+          )}
+        >
+          <span className="text-3xl leading-none">{s.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm md:text-base font-medium text-foreground">
+              {s.label}
+            </div>
+            <div className="mt-0.5 text-xs md:text-sm text-muted-foreground">
+              {s.sub}
+            </div>
+          </div>
+          {active && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </motion.span>
+          )}
+        </motion.button>
+      );
+    })}
   </div>
 );
 
@@ -447,6 +592,7 @@ const BOOKED_OPTIONS = [
   "Transportation",
   "Invitations",
   "Makeup",
+  "Mehendi",
   "Mehendi",
   "Priest",
   "Wedding Planner",
@@ -662,9 +808,25 @@ export const STEPS: StepDef[] = [
     progressMsg: "💍 We're building your Wedding Profile.",
     cta: "Onward →",
     render: Card4,
-    isValid: (v) =>
-      !!(v.city?.trim() && v.locationType) &&
-      (v.locationType !== "destination" || !!v.destinationCity?.trim()),
+    isValid: (v) => !!(v.city?.trim() && v.locationType),
+  },
+  {
+    id: "destination",
+    title: "✈️ Tell us a little about your destination wedding",
+    hint: "A few quick details now will help us recommend the right venues and plan guest logistics later.",
+    progressMsg: "✈️ Dreaming up your destination celebration.",
+    cta: "Onward →",
+    render: CardDestination,
+    isValid: (v) => !!v.destinationCity?.trim(),
+  },
+  {
+    id: "planningStage",
+    title: "💫 Where are you in your wedding planning journey?",
+    hint: "This helps us personalise your planning experience and recommendations.",
+    progressMsg: "💫 Meeting you where you are.",
+    cta: "Continue →",
+    render: CardPlanningStage,
+    isValid: (v) => !!v.planningStage,
   },
   {
     id: "booked",

@@ -18,11 +18,20 @@ export type WeddingProfile = {
   community?: string;
   // Card 3
   events?: EventEntry[];
+  dateFlexibility?: "fixed" | "few-days" | "few-weeks" | "exploring";
   // Card 4
   city?: string;
   state?: string;
   locationType?: "local" | "destination";
   destinationCity?: string;
+  // Destination-only card
+  destinationVenue?: string;
+  guestsAccommodation?: "yes" | "no" | "not-sure";
+  guestsTransportation?: "yes" | "no" | "not-sure";
+  travellingGuests?: string;
+  destinationNotes?: string;
+  // Planning stage
+  planningStage?: string;
   // Card 5
   booked?: string[];
   // Card 6
