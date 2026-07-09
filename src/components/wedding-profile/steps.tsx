@@ -374,6 +374,25 @@ const Card3 = ({ value, update }: StepProps) => {
           </motion.div>
         )}
       </AnimatePresence>
+      <div className="pt-2">
+        <FieldLabel>How flexible are your wedding dates overall?</FieldLabel>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { v: "fixed", l: "Fixed" },
+            { v: "few-days", l: "Flexible by a few days" },
+            { v: "few-weeks", l: "Flexible by a few weeks" },
+            { v: "exploring", l: "Still exploring" },
+          ] as const).map((o) => (
+            <Chip
+              key={o.v}
+              active={value.dateFlexibility === o.v}
+              onClick={() => update({ dateFlexibility: o.v })}
+            >
+              {o.l}
+            </Chip>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
