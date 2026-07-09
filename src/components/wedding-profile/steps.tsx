@@ -299,7 +299,7 @@ const Card3 = ({ value, update }: StepProps) => {
   const toggle = (name: string) => {
     const exists = events.find((e) => e.name === name);
     if (exists) update({ events: events.filter((e) => e.name !== name) });
-    else update({ events: [...events, { name, dateType: "tentative" }] });
+    else update({ events: [...events, { name, dateType: "exact" }] });
   };
   const patchEvent = (name: string, patch: Partial<EventEntry>) => {
     update({
