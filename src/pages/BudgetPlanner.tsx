@@ -260,6 +260,7 @@ const BudgetPlanner = () => {
   const [loaded, setLoaded] = useState(false);
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [lockedGuestCount, setLockedGuestCount] = useState<number | undefined>(undefined);
   const [expanded, setExpanded] = useState<CategoryKey | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
