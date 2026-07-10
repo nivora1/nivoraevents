@@ -381,13 +381,15 @@ const BudgetPlanner = () => {
     const diff = newAlloc - cat.allocated;
     const threshold = Math.max(totalBudget * MEANINGFUL_PCT, 5000);
     if (Math.abs(diff) < threshold) {
-      // Just update this category & scale its items
       setCategories((prev) =>
-        prev.map((c) => (c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c))
+        prev.map((c) =>
+          c.key === key
+            ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+            : c,
+        ),
       );
       return;
     }
-    // Meaningful — open sheet
     setPending({ key, oldAlloc: cat.allocated, newAlloc });
   };
 
@@ -397,16 +399,19 @@ const BudgetPlanner = () => {
     const diff = newAlloc - oldAlloc;
     const newTotal = roundClean(totalBudget + diff);
     setCategories((prev) => {
-      // First set changed category, then rescale others by their pct against newTotal
       const withChange = prev.map((c) =>
-        c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c
+        c.key === key
+          ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+          : c,
       );
-      // Rescale others proportionally to their pct
-      const changedPct = withChange.find((c) => c.key === key)!.pct;
-      const otherPctSum = withChange.filter((c) => c.key !== key).reduce((s, c) => s + c.pct, 0);
-      const otherBudget = Math.max(0, newTotal - newAlloc);
+      const lockedOthersSum = withChange
+        .filter((c) => c.key !== key && c.locked)
+        .reduce((s, c) => s + c.allocated, 0);
+      const unlockedOthers = withChange.filter((c) => c.key !== key && !c.locked);
+      const otherPctSum = unlockedOthers.reduce((s, c) => s + c.pct, 0);
+      const otherBudget = Math.max(0, newTotal - newAlloc - lockedOthersSum);
       return withChange.map((c) => {
-        if (c.key === key) return c;
+        if (c.key === key || c.locked) return c;
         const share = otherPctSum > 0 ? c.pct / otherPctSum : 0;
         const alloc = roundClean(otherBudget * share);
         return { ...c, allocated: alloc, items: scaleItems(c.items, c.allocated, alloc) };
