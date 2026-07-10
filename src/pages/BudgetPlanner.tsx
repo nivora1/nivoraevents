@@ -322,14 +322,14 @@ const BudgetPlanner = () => {
 
   // Save
   useDebouncedSave(
-    { totalBudget, categories },
+    { totalBudget, categories, lockedGuestCount },
     async (val) => {
       if (!user || step !== "planner" || val.totalBudget <= 0) return;
       setSaveStatus("saving");
-      // Strip non-serializable icon
       const serializable = {
         totalBudget: val.totalBudget,
         categories: val.categories.map(({ icon, ...rest }) => rest),
+        lockedGuestCount: val.lockedGuestCount,
       };
       const { error } = await supabase.from("budget_planner_data").upsert(
         [{ user_id: user.id, categories: serializable as unknown as never }],
