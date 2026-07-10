@@ -18,6 +18,7 @@ import {
   Sparkles,
   Wallet,
   Pencil,
+  Lock,
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
@@ -52,9 +53,10 @@ type Category = {
   pct: number; // recommended baseline percentage
   allocated: number; // current allocation in INR
   items: Item[];
+  locked?: boolean;
 };
 
-type StoredShape = { totalBudget: number; categories: Category[] };
+type StoredShape = { totalBudget: number; categories: Category[]; lockedGuestCount?: number };
 
 // ---------- Presets ----------
 
@@ -200,23 +202,32 @@ const redistributeKeepingTotal = (
   newTotal: number
 ): Category[] => {
   const changed = cats.find((c) => c.key === changedKey)!;
-  const remainingBudget = Math.max(0, newTotal - changed.allocated);
-  const others = cats.filter((c) => c.key !== changedKey);
+  const lockedElsewhere = cats
+    .filter((c) => c.key !== changedKey && c.locked)
+    .reduce((s, c) => s + c.allocated, 0);
+  const remainingBudget = Math.max(0, newTotal - changed.allocated - lockedElsewhere);
+  const others = cats.filter((c) => c.key !== changedKey && !c.locked);
   const othersSum = others.reduce((s, c) => s + c.allocated, 0);
   return cats.map((c) => {
-    if (c.key === changedKey) return c;
-    const share = othersSum > 0 ? c.allocated / othersSum : 1 / others.length;
+    if (c.key === changedKey || c.locked) return c;
+    const share = othersSum > 0 ? c.allocated / othersSum : 1 / Math.max(1, others.length);
     const newAlloc = roundClean(remainingBudget * share);
     return { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) };
   });
 };
 
-// Scale total-budget uniformly by category pct.
-const rescaleAllToTotal = (cats: Category[], newTotal: number): Category[] =>
-  cats.map((c) => {
-    const alloc = roundClean((newTotal * c.pct) / 100);
+// Scale total-budget uniformly by category pct (locked categories keep their allocation).
+const rescaleAllToTotal = (cats: Category[], newTotal: number): Category[] => {
+  const lockedSum = cats.filter((c) => c.locked).reduce((s, c) => s + c.allocated, 0);
+  const remaining = Math.max(0, newTotal - lockedSum);
+  const unlockedPctSum = cats.filter((c) => !c.locked).reduce((s, c) => s + c.pct, 0);
+  return cats.map((c) => {
+    if (c.locked) return c;
+    const share = unlockedPctSum > 0 ? c.pct / unlockedPctSum : 0;
+    const alloc = roundClean(remaining * share);
     return { ...c, allocated: alloc, items: scaleItems(c.items, c.allocated, alloc) };
   });
+};
 
 const scaleItems = (items: Item[], oldTotal: number, newTotal: number): Item[] => {
   if (items.length === 0) return items;
@@ -250,6 +261,7 @@ const BudgetPlanner = () => {
   const [loaded, setLoaded] = useState(false);
   const [totalBudget, setTotalBudget] = useState<number>(0);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [lockedGuestCount, setLockedGuestCount] = useState<number | undefined>(undefined);
   const [expanded, setExpanded] = useState<CategoryKey | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
@@ -297,6 +309,7 @@ const BudgetPlanner = () => {
             });
             setTotalBudget(shape.totalBudget);
             setCategories(rehydrated);
+            setLockedGuestCount(shape.lockedGuestCount);
             setStep("planner");
           }
         }
@@ -310,14 +323,14 @@ const BudgetPlanner = () => {
 
   // Save
   useDebouncedSave(
-    { totalBudget, categories },
+    { totalBudget, categories, lockedGuestCount },
     async (val) => {
       if (!user || step !== "planner" || val.totalBudget <= 0) return;
       setSaveStatus("saving");
-      // Strip non-serializable icon
       const serializable = {
         totalBudget: val.totalBudget,
         categories: val.categories.map(({ icon, ...rest }) => rest),
+        lockedGuestCount: val.lockedGuestCount,
       };
       const { error } = await supabase.from("budget_planner_data").upsert(
         [{ user_id: user.id, categories: serializable as unknown as never }],
@@ -369,13 +382,15 @@ const BudgetPlanner = () => {
     const diff = newAlloc - cat.allocated;
     const threshold = Math.max(totalBudget * MEANINGFUL_PCT, 5000);
     if (Math.abs(diff) < threshold) {
-      // Just update this category & scale its items
       setCategories((prev) =>
-        prev.map((c) => (c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c))
+        prev.map((c) =>
+          c.key === key
+            ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+            : c,
+        ),
       );
       return;
     }
-    // Meaningful — open sheet
     setPending({ key, oldAlloc: cat.allocated, newAlloc });
   };
 
@@ -385,16 +400,19 @@ const BudgetPlanner = () => {
     const diff = newAlloc - oldAlloc;
     const newTotal = roundClean(totalBudget + diff);
     setCategories((prev) => {
-      // First set changed category, then rescale others by their pct against newTotal
       const withChange = prev.map((c) =>
-        c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c
+        c.key === key
+          ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+          : c,
       );
-      // Rescale others proportionally to their pct
-      const changedPct = withChange.find((c) => c.key === key)!.pct;
-      const otherPctSum = withChange.filter((c) => c.key !== key).reduce((s, c) => s + c.pct, 0);
-      const otherBudget = Math.max(0, newTotal - newAlloc);
+      const lockedOthersSum = withChange
+        .filter((c) => c.key !== key && c.locked)
+        .reduce((s, c) => s + c.allocated, 0);
+      const unlockedOthers = withChange.filter((c) => c.key !== key && !c.locked);
+      const otherPctSum = unlockedOthers.reduce((s, c) => s + c.pct, 0);
+      const otherBudget = Math.max(0, newTotal - newAlloc - lockedOthersSum);
       return withChange.map((c) => {
-        if (c.key === key) return c;
+        if (c.key === key || c.locked) return c;
         const share = otherPctSum > 0 ? c.pct / otherPctSum : 0;
         const alloc = roundClean(otherBudget * share);
         return { ...c, allocated: alloc, items: scaleItems(c.items, c.allocated, alloc) };
@@ -410,7 +428,9 @@ const BudgetPlanner = () => {
     const { key, newAlloc } = pending;
     setCategories((prev) => {
       const withChange = prev.map((c) =>
-        c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c
+        c.key === key
+          ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+          : c,
       );
       return redistributeKeepingTotal(withChange, key, totalBudget);
     });
@@ -610,7 +630,15 @@ const BudgetPlanner = () => {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h2 className="text-base md:text-lg text-foreground truncate">{c.title}</h2>
+                          <h2 className="text-base md:text-lg text-foreground truncate inline-flex items-center gap-2">
+                            {c.title}
+                            {c.locked && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft text-primary px-2 py-0.5 text-[10px] font-medium">
+                                <Lock className="h-2.5 w-2.5" />
+                                Locked
+                              </span>
+                            )}
+                          </h2>
                           <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                             <AnimatedNumber value={c.allocated} /> · {pctOfTotal.toFixed(0)}% of total
                           </p>

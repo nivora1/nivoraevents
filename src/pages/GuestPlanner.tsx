@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Download,
   Plus,
+  Minus,
   Trash2,
   Users,
   CheckCircle2,
   Clock,
-  XCircle,
   Sparkles,
-  Share2,
-  Mail,
   ChevronDown,
-  Phone,
+  Lock,
+  Wallet,
+  Pencil,
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
@@ -21,59 +22,143 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+// ---------- Types ----------
 
 type Side = "Bride" | "Groom";
 type Group = "Family" | "Friends" | "Work" | "VIP";
-type RSVP = "Pending" | "Confirmed" | "Declined";
-type Invite = "Not Invited" | "Invited" | "RSVP Received";
-type Meal = "Veg" | "Non-Veg";
+type RSVP = "Pending" | "Confirmed";
+type Meal = "Default" | "Veg" | "Non-Veg" | "Egg" | "Vegan" | "Jain";
 
 type Guest = {
   id: string;
   name: string;
-  mobile: string;
   side: Side | "";
   group: Group | "";
-  rsvp: RSVP | "";
-  invite: Invite | "";
-  plusOne: boolean;
-  meal: Meal | "";
-  notes: string;
+  rsvp: RSVP;
+  meal: Meal;
+  additionalGuests: number;
 };
 
-type FilterKey = "All" | RSVP | Group;
+type Estimates = { bride: number | ""; groom: number | ""; other: number | "" };
+
+type StoredShape = {
+  v: 2;
+  mode: "basic" | "detailed";
+  estimates: Estimates;
+  manualTotal: number | null;
+  manualConfirmed: number | null;
+  defaultMeal: Meal;
+  guests: Guest[];
+};
 
 const uid = () => Math.random().toString(36).slice(2, 9);
-
 const inr = (n: number) =>
   n.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
-const filters: FilterKey[] = ["All", "Confirmed", "Pending", "Declined", "Family", "Friends", "Work", "VIP"];
+const MEAL_OPTIONS: Meal[] = ["Default", "Veg", "Non-Veg", "Egg", "Vegan", "Jain"];
+const GROUP_OPTIONS: Group[] = ["Family", "Friends", "Work", "VIP"];
+const RSVP_OPTIONS: RSVP[] = ["Confirmed", "Pending"];
+
+// ---------- Budget helpers (in-file to avoid new module) ----------
+
+type BudgetCatShape = {
+  key: string;
+  title: string;
+  vendorLabel: string;
+  vendorLink?: string;
+  pct: number;
+  allocated: number;
+  items: { id: string; name: string; amount: number }[];
+  locked?: boolean;
+};
+type BudgetStored = {
+  totalBudget: number;
+  categories: BudgetCatShape[];
+  lockedGuestCount?: number;
+};
+
+const roundClean = (n: number) => {
+  if (n <= 0) return 0;
+  const step = n >= 500000 ? 25000 : n >= 100000 ? 10000 : n >= 20000 ? 5000 : n >= 5000 ? 1000 : 500;
+  return Math.round(n / step) * step;
+};
+
+const scaleItems = (
+  items: { id: string; name: string; amount: number }[],
+  oldTotal: number,
+  newTotal: number,
+) => {
+  if (items.length === 0) return items;
+  if (oldTotal <= 0) {
+    const base = newTotal / items.length;
+    return items.map((i) => ({ ...i, amount: roundClean(base) }));
+  }
+  const ratio = newTotal / oldTotal;
+  return items.map((i) => ({ ...i, amount: roundClean(i.amount * ratio) }));
+};
+
+// ---------- Component ----------
 
 const GuestPlanner = () => {
   const { user } = useAuth();
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [filter, setFilter] = useState<FilterKey>("All");
-  const [perPlate, setPerPlate] = useState<number | "">("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
+  const [mode, setMode] = useState<"basic" | "detailed">("basic");
+  const [estimates, setEstimates] = useState<Estimates>({ bride: "", groom: "", other: "" });
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [defaultMeal, setDefaultMeal] = useState<Meal>("Default");
+  const [manualTotal, setManualTotal] = useState<number | null>(null);
+  const [manualConfirmed, setManualConfirmed] = useState<number | null>(null);
+
+  const [perPlate, setPerPlate] = useState<number | "">("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Budget snapshot (for integration)
+  const [budget, setBudget] = useState<BudgetStored | null>(null);
+
+  // ---------- Load ----------
   useEffect(() => {
     if (!user) return;
     let cancel = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("guest_planner_data")
-        .select("guests, per_plate")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [g, b] = await Promise.all([
+        supabase.from("guest_planner_data").select("guests, per_plate").eq("user_id", user.id).maybeSingle(),
+        supabase.from("budget_planner_data").select("categories").eq("user_id", user.id).maybeSingle(),
+      ]);
       if (cancel) return;
-      if (error) {
-        toast.error("Couldn't load saved data");
-      } else if (data) {
-        setGuests((data.guests as unknown as Guest[]) ?? []);
-        setPerPlate(data.per_plate === null ? "" : Number(data.per_plate));
+      if (g.error) toast.error("Couldn't load guest data");
+      else if (g.data) {
+        const raw = g.data.guests as unknown;
+        if (Array.isArray(raw)) {
+          // Legacy: migrate array
+          const migrated: Guest[] = (raw as Array<Record<string, unknown>>).map((old) => ({
+            id: (old.id as string) || uid(),
+            name: (old.name as string) || "",
+            side: ((old.side as string) === "Bride" || old.side === "Groom") ? (old.side as Side) : "",
+            group: GROUP_OPTIONS.includes(old.group as Group) ? (old.group as Group) : "",
+            rsvp: (old.rsvp as RSVP) === "Pending" ? "Pending" : "Confirmed",
+            meal: MEAL_OPTIONS.includes(old.meal as Meal) ? (old.meal as Meal) : "Default",
+            additionalGuests: old.plusOne ? 1 : 0,
+          }));
+          setGuests(migrated);
+          if (migrated.length > 0) setMode("detailed");
+        } else if (raw && typeof raw === "object" && (raw as StoredShape).v === 2) {
+          const s = raw as StoredShape;
+          setMode(s.mode ?? "basic");
+          setEstimates(s.estimates ?? { bride: "", groom: "", other: "" });
+          setGuests(Array.isArray(s.guests) ? s.guests : []);
+          setDefaultMeal(s.defaultMeal ?? "Default");
+          setManualTotal(s.manualTotal ?? null);
+          setManualConfirmed(s.manualConfirmed ?? null);
+        }
+        setPerPlate(g.data.per_plate == null ? "" : Number(g.data.per_plate));
+      }
+      if (!b.error && b.data && b.data.categories) {
+        const raw = b.data.categories as unknown;
+        if (raw && typeof raw === "object" && !Array.isArray(raw) && "totalBudget" in (raw as object)) {
+          setBudget(raw as BudgetStored);
+        }
       }
       setLoaded(true);
     })();
@@ -82,20 +167,37 @@ const GuestPlanner = () => {
     };
   }, [user]);
 
-  // Explicit save — runs only when guests are added / edited / removed.
+  // ---------- Persist ----------
   const loadedRef = useRef(false);
   useEffect(() => {
     loadedRef.current = loaded;
   }, [loaded]);
 
   const persist = useCallback(
-    async (nextGuests: Guest[], nextPerPlate: number | "") => {
+    async (
+      nextGuests: Guest[],
+      nextPerPlate: number | "",
+      nextMode: "basic" | "detailed",
+      nextEstimates: Estimates,
+      nextDefaultMeal: Meal,
+      nextManualTotal: number | null,
+      nextManualConfirmed: number | null,
+    ) => {
       if (!user || !loadedRef.current) return;
       setSaveStatus("saving");
+      const payload: StoredShape = {
+        v: 2,
+        mode: nextMode,
+        estimates: nextEstimates,
+        manualTotal: nextManualTotal,
+        manualConfirmed: nextManualConfirmed,
+        defaultMeal: nextDefaultMeal,
+        guests: nextGuests,
+      };
       const { error } = await supabase.from("guest_planner_data").upsert(
         [{
           user_id: user.id,
-          guests: nextGuests as unknown as never,
+          guests: payload as unknown as never,
           per_plate: nextPerPlate === "" ? null : Number(nextPerPlate),
         }],
         { onConflict: "user_id" },
@@ -110,118 +212,123 @@ const GuestPlanner = () => {
     [user],
   );
 
-  // Quick add
-  const [qName, setQName] = useState("");
-  const [qMobile, setQMobile] = useState("");
-  const [qSide, setQSide] = useState<Side | "">("");
-  const [qGroup, setQGroup] = useState<Group | "">("");
-  const [qRsvp, setQRsvp] = useState<RSVP | "">("");
+  // Debounced auto-save on any change
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(() => {
+      void persist(guests, perPlate, mode, estimates, defaultMeal, manualTotal, manualConfirmed);
+    }, 600);
+    return () => clearTimeout(t);
+  }, [guests, perPlate, mode, estimates, defaultMeal, manualTotal, manualConfirmed, loaded, persist]);
 
-  // Invites dialog state
-  const [invitedRecently, setInvitedRecently] = useState<Guest[]>([]);
+  // ---------- Derived ----------
+
+  const estimatesSum = useMemo(() => {
+    const b = Number(estimates.bride) || 0;
+    const g = Number(estimates.groom) || 0;
+    const o = Number(estimates.other) || 0;
+    return b + g + o;
+  }, [estimates]);
+
+  const detailedTotal = useMemo(
+    () => guests.reduce((s, g) => s + 1 + (g.additionalGuests || 0), 0),
+    [guests],
+  );
+  const detailedConfirmed = useMemo(
+    () =>
+      guests
+        .filter((g) => g.rsvp === "Confirmed")
+        .reduce((s, g) => s + 1 + (g.additionalGuests || 0), 0),
+    [guests],
+  );
+
+  const total = manualTotal ?? (mode === "detailed" ? detailedTotal : estimatesSum);
+  const confirmed = manualConfirmed ?? (mode === "detailed" ? detailedConfirmed : total);
+  const pending = Math.max(0, total - confirmed);
+
+  const brideSide = useMemo(() => guests.filter((g) => g.side === "Bride"), [guests]);
+  const groomSide = useMemo(() => guests.filter((g) => g.side === "Groom"), [guests]);
+  const unassigned = useMemo(() => guests.filter((g) => g.side === ""), [guests]);
+
+  // ---------- Guest ops ----------
 
   const updateGuest = (id: string, patch: Partial<Guest>) => {
-    setGuests((prev) => {
-      const next = prev.map((g) => (g.id === id ? { ...g, ...patch } : g));
-      void persist(next, perPlate);
-      return next;
-    });
+    setGuests((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   };
-
   const removeGuest = (id: string) => {
-    setGuests((prev) => {
-      const next = prev.filter((g) => g.id !== id);
-      void persist(next, perPlate);
-      return next;
-    });
+    setGuests((prev) => prev.filter((g) => g.id !== id));
     if (expandedId === id) setExpandedId(null);
   };
+
+  // Quick add state
+  const [qName, setQName] = useState("");
+  const [qSide, setQSide] = useState<Side | "">("");
+  const [qGroup, setQGroup] = useState<Group | "">("");
+  const [qRsvp, setQRsvp] = useState<RSVP>("Confirmed");
+  const [qMeal, setQMeal] = useState<Meal>("Default");
+  const [qAddOn, setQAddOn] = useState(false);
+  const [qAddCount, setQAddCount] = useState(1);
 
   const addGuest = () => {
     if (!qName.trim()) {
       toast.error("Please enter a guest name");
       return;
     }
-    const newGuest: Guest = {
+    const meal = qMeal === "Default" && defaultMeal !== "Default" ? defaultMeal : qMeal;
+    const g: Guest = {
       id: uid(),
       name: qName.trim(),
-      mobile: qMobile.trim(),
       side: qSide,
       group: qGroup,
-      rsvp: qRsvp || "Pending",
-      invite: "Not Invited",
-      plusOne: false,
-      meal: "",
-      notes: "",
+      rsvp: qRsvp,
+      meal,
+      additionalGuests: qAddOn ? Math.max(1, qAddCount) : 0,
     };
-    setGuests((prev) => {
-      const next = [newGuest, ...prev];
-      void persist(next, perPlate);
-      return next;
-    });
+    setGuests((prev) => [g, ...prev]);
     setQName("");
-    setQMobile("");
     setQSide("");
     setQGroup("");
-    setQRsvp("");
-    toast.success(`${newGuest.name} added to your guest list`);
+    setQRsvp("Confirmed");
+    setQMeal("Default");
+    setQAddOn(false);
+    setQAddCount(1);
+    toast.success(`${g.name} added to your guest list`);
   };
 
-  const counts = useMemo(() => {
-    const total = guests.reduce((sum, g) => sum + 1 + (g.plusOne ? 1 : 0), 0);
-    const confirmed = guests
-      .filter((g) => g.rsvp === "Confirmed")
-      .reduce((s, g) => s + 1 + (g.plusOne ? 1 : 0), 0);
-    const pending = guests
-      .filter((g) => g.rsvp === "Pending" || g.rsvp === "")
-      .reduce((s, g) => s + 1 + (g.plusOne ? 1 : 0), 0);
-    const declined = guests.filter((g) => g.rsvp === "Declined").length;
-    return { total, confirmed, pending, declined };
-  }, [guests]);
+  const applyMealToAll = () => {
+    setDefaultMeal(qMeal);
+    setGuests((prev) => prev.map((g) => ({ ...g, meal: qMeal })));
+    toast.success(
+      qMeal === "Default"
+        ? "Meal preference cleared for all guests"
+        : `${qMeal} applied to all guests`,
+    );
+  };
 
-  const groupCounts = useMemo(() => {
-    const c: Record<Group, number> = { Family: 0, Friends: 0, Work: 0, VIP: 0 };
-    guests.forEach((g) => {
-      if (g.group) c[g.group] += 1;
-    });
-    return c;
-  }, [guests]);
-
-  const topGroup = useMemo(() => {
-    const entries = Object.entries(groupCounts) as [Group, number][];
-    const sorted = entries.sort((a, b) => b[1] - a[1]);
-    return sorted[0]?.[1] > 0 ? sorted[0][0] : null;
-  }, [groupCounts]);
-
-  const visibleGuests = useMemo(() => {
-    if (filter === "All") return guests;
-    if (filter === "Confirmed" || filter === "Pending" || filter === "Declined") {
-      return guests.filter((g) => g.rsvp === filter);
-    }
-    return guests.filter((g) => g.group === filter);
-  }, [guests, filter]);
-
-  const cateringCost = useMemo(() => {
-    const rate = Number(perPlate) || 0;
-    return counts.confirmed * rate;
-  }, [counts.confirmed, perPlate]);
+  // ---------- CSV ----------
 
   const downloadCSV = () => {
-    const headers = ["Name", "Mobile", "Side", "Group", "RSVP", "Invite Status", "+1", "Meal", "Notes"];
+    const headers = [
+      "Name",
+      "Bride/Groom Side",
+      "Group",
+      "Meal Preference",
+      "RSVP",
+      "Additional Guests",
+      "Total People Represented",
+    ];
     const rows = [headers.join(",")];
+    const safe = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
     guests.forEach((g) => {
-      const safe = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
       rows.push(
         [
           safe(g.name),
-          safe(g.mobile),
           g.side || "",
           g.group || "",
-          g.rsvp || "",
-          g.invite || "",
-          g.plusOne ? "Yes" : "No",
-          g.meal || "",
-          safe(g.notes),
+          g.meal,
+          g.rsvp,
+          g.additionalGuests || 0,
+          1 + (g.additionalGuests || 0),
         ].join(","),
       );
     });
@@ -235,51 +342,117 @@ const GuestPlanner = () => {
     toast.success("Guest list downloaded");
   };
 
-  const sharePlan = async () => {
-    const text = `Our wedding guest list: ${counts.total} total · ${counts.confirmed} confirmed · ${counts.pending} pending`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Nivora Guest Planner", text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("Summary copied to clipboard");
-      }
-    } catch {
-      // user cancelled
-    }
-  };
+  // ---------- Budget integration ----------
 
-  const sendInvites = () => {
-    const eligible = guests.filter((g) => g.mobile.trim() && g.invite !== "RSVP Received");
-    if (eligible.length === 0) {
-      toast.error("No guests with mobile numbers to invite");
+  const cateringCat = budget?.categories.find((c) => c.key === "catering");
+  const cateringAllocated = cateringCat?.allocated ?? 0;
+  const cateringLocked = !!cateringCat?.locked;
+  const lockedGuestCount = budget?.lockedGuestCount;
+
+  const suggestedPerPlate = useMemo(() => {
+    if (!cateringCat || total <= 0) return null;
+    return Math.round(cateringAllocated / total);
+  }, [cateringCat, cateringAllocated, total]);
+
+  const cateringCost = useMemo(() => {
+    const rate = Number(perPlate) || 0;
+    if (rate > 0) return rate * total;
+    return cateringAllocated;
+  }, [perPlate, total, cateringAllocated]);
+
+  const guestDrift = useMemo(() => {
+    if (!cateringLocked || lockedGuestCount == null || lockedGuestCount === 0) return 0;
+    return Math.abs(total - lockedGuestCount) / lockedGuestCount;
+  }, [cateringLocked, lockedGuestCount, total]);
+
+  const [showGuestDriftBanner, setShowGuestDriftBanner] = useState(true);
+
+  const applyCateringToBudget = async () => {
+    if (!user) {
+      toast.error("Please sign in");
       return;
     }
-    setGuests((prev) => {
-      const next: Guest[] = prev.map((g) =>
-        g.mobile.trim() && g.invite !== "RSVP Received" ? { ...g, invite: "Invited" as Invite } : g,
-      );
-      void persist(next, perPlate);
-      return next;
+    const rate = Number(perPlate) || 0;
+    if (rate <= 0) {
+      toast.error("Enter a cost per plate first");
+      return;
+    }
+    if (total <= 0) {
+      toast.error("Add guests or estimates first");
+      return;
+    }
+    const newCatering = roundClean(rate * total);
+
+    if (!budget) {
+      toast.error("Set up your Wedding Budget first");
+      return;
+    }
+
+    // Update budget: set catering.allocated = newCatering, mark locked, redistribute non-locked others
+    const cats = budget.categories.map((c) => ({ ...c }));
+    const catIdx = cats.findIndex((c) => c.key === "catering");
+    if (catIdx < 0) return;
+    const oldCat = cats[catIdx];
+    cats[catIdx] = {
+      ...oldCat,
+      allocated: newCatering,
+      items: scaleItems(oldCat.items, oldCat.allocated, newCatering),
+      locked: true,
+    };
+
+    // Redistribute among non-locked, non-catering categories preserving proportions
+    const others = cats.filter((c) => c.key !== "catering" && !c.locked);
+    const otherSum = others.reduce((s, c) => s + c.allocated, 0);
+    const remaining = Math.max(0, budget.totalBudget - newCatering - cats.filter((c) => c.key !== "catering" && c.locked).reduce((s, c) => s + c.allocated, 0));
+    const nextCats = cats.map((c) => {
+      if (c.key === "catering" || c.locked) return c;
+      const share = otherSum > 0 ? c.allocated / otherSum : 1 / Math.max(1, others.length);
+      const alloc = roundClean(remaining * share);
+      return { ...c, allocated: alloc, items: scaleItems(c.items, c.allocated, alloc) };
     });
-    setInvitedRecently(eligible);
-    toast.success(`Invites sent successfully to ${eligible.length} guest${eligible.length > 1 ? "s" : ""}`);
+
+    const nextBudget: BudgetStored = {
+      totalBudget: budget.totalBudget,
+      categories: nextCats,
+      lockedGuestCount: total,
+    };
+
+    const { error } = await supabase.from("budget_planner_data").upsert(
+      [{ user_id: user.id, categories: nextBudget as unknown as never }],
+      { onConflict: "user_id" },
+    );
+    if (error) {
+      toast.error("Failed to update budget");
+      return;
+    }
+    setBudget(nextBudget);
+    toast.success("Catering budget updated and locked");
   };
 
-  const counters = [
-    { label: "Total Guests", value: counts.total, Icon: Users, accent: "text-foreground" },
-    { label: "Confirmed", value: counts.confirmed, Icon: CheckCircle2, accent: "text-primary" },
-    { label: "Pending", value: counts.pending, Icon: Clock, accent: "text-secondary" },
-    { label: "Declined", value: counts.declined, Icon: XCircle, accent: "text-destructive" },
-  ];
+  // ---------- UI helpers ----------
 
   const selectCls =
-    "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+    "rounded-md border border-input bg-background px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const inputCls =
-    "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring";
+    "rounded-md border border-input bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring";
 
-  // Color hint when value missing
-  const placeholderTone = (val: string) => (val === "" ? "text-muted-foreground/60" : "text-foreground");
+  const numInput = (
+    value: number | "",
+    onChange: (n: number | "") => void,
+    placeholder = "0",
+  ) => (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={0}
+      value={value}
+      onChange={(e) => onChange(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+      placeholder={placeholder}
+      className={`${inputCls} w-full`}
+    />
+  );
+
+  // ---------- Render ----------
 
   return (
     <div className="bg-surface min-h-screen pb-32">
@@ -297,394 +470,311 @@ const GuestPlanner = () => {
               Organise Your Wedding Guests
             </h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl">
-              Track RSVPs, manage groups, and estimate catering — all in one calm, controlled view.
+              Start with a simple estimate — switch to full guest management whenever you're ready.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* Counters */}
-      <section className="container-narrow -mt-8 md:-mt-10">
+      <section className="container-narrow -mt-8 md:-mt-10 space-y-8">
+        {/* Summary counters (3) — editable Total & Confirmed */}
         <Reveal>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
-            {counters.map(({ label, value, Icon, accent }) => (
-              <div
-                key={label}
-                className="bg-card border border-border rounded-2xl shadow-soft p-4 md:p-5 hover:shadow-elegant transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span>
-                  <Icon className={`h-4 w-4 ${accent}`} />
-                </div>
-                <p className={`mt-2 text-2xl md:text-3xl font-serif ${accent}`}>{value}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+            <EditableCounter
+              label="Total Guests"
+              value={total}
+              icon={Users}
+              accent="text-foreground"
+              onChange={(v) => setManualTotal(v)}
+              onClear={() => setManualTotal(null)}
+              manual={manualTotal != null}
+            />
+            <EditableCounter
+              label="Confirmed"
+              value={confirmed}
+              icon={CheckCircle2}
+              accent="text-primary"
+              onChange={(v) => setManualConfirmed(v)}
+              onClear={() => setManualConfirmed(null)}
+              manual={manualConfirmed != null}
+            />
+            <div className="bg-card border border-border rounded-2xl shadow-soft p-4 md:p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Pending</span>
+                <Clock className="h-4 w-4 text-secondary" />
               </div>
-            ))}
+              <p className="mt-2 text-2xl md:text-3xl font-serif text-secondary tabular-nums">{pending}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Auto-calculated</p>
+            </div>
           </div>
         </Reveal>
 
-        {/* Insights */}
-        {(counts.pending > 0 || topGroup) && (
-          <Reveal delay={80}>
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              {counts.pending > 0 && (
-                <span className="inline-flex items-center gap-2 rounded-full bg-secondary/15 text-foreground/80 px-3.5 py-1.5 text-xs">
-                  <Sparkles className="h-3.5 w-3.5 text-secondary" />
-                  You still have {counts.pending} pending RSVP{counts.pending > 1 ? "s" : ""}
-                </span>
-              )}
-              {topGroup && (
-                <span className="inline-flex items-center gap-2 rounded-full bg-primary-soft text-primary px-3.5 py-1.5 text-xs">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Most of your guests are from {topGroup}
-                </span>
-              )}
-            </div>
-          </Reveal>
-        )}
+        {/* Guest drift banner */}
+        <AnimatePresence>
+          {cateringLocked && guestDrift > 0.1 && showGuestDriftBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="rounded-2xl border border-amber-300/60 bg-amber-50/60 dark:bg-amber-950/20 px-5 py-4 flex flex-wrap items-center gap-3"
+            >
+              <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
+              <div className="flex-1 min-w-[220px]">
+                <p className="text-sm text-foreground">
+                  Your guest count has changed. Your current catering budget may no longer match your guest list.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  to="/budget-planner"
+                  className="rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium hover:border-primary hover:text-primary transition-colors"
+                >
+                  Review Catering Budget
+                </Link>
+                <button
+                  onClick={() => setShowGuestDriftBanner(false)}
+                  className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Quick add */}
-        <Reveal delay={120}>
-          <div className="mt-8 bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
-            <div className="px-5 md:px-7 py-4 border-b border-border bg-surface-muted">
-              <h2 className="text-lg md:text-xl text-foreground">Add a guest</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Enter a name to add — refine details from the list anytime.
-              </p>
+        {/* Estimated Guest Count (Basic Mode) */}
+        <Reveal delay={80}>
+          <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+            <div className="px-5 md:px-7 py-4 border-b border-border bg-surface-muted flex items-center justify-between">
+              <div>
+                <h2 className="text-lg md:text-xl text-foreground">Estimated Guest Count</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Quick estimates for planning and catering.
+                </p>
+              </div>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Basic</span>
             </div>
-            <div className="p-5 md:p-7 grid grid-cols-1 md:grid-cols-12 gap-3">
-              <input
-                type="text"
-                value={qName}
-                onChange={(e) => setQName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addGuest()}
-                placeholder="Guest name"
-                className={`md:col-span-3 ${inputCls}`}
-              />
-              <input
-                type="tel"
-                value={qMobile}
-                onChange={(e) => setQMobile(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addGuest()}
-                placeholder="Mobile number"
-                className={`md:col-span-2 ${inputCls}`}
-              />
-              <select
-                value={qSide}
-                onChange={(e) => setQSide(e.target.value as Side | "")}
-                className={`md:col-span-2 ${selectCls} py-2.5 ${placeholderTone(qSide)}`}
-              >
-                <option value="">Select side (Bride/Groom)</option>
-                <option value="Bride">Bride</option>
-                <option value="Groom">Groom</option>
-              </select>
-              <select
-                value={qGroup}
-                onChange={(e) => setQGroup(e.target.value as Group | "")}
-                className={`md:col-span-2 ${selectCls} py-2.5 ${placeholderTone(qGroup)}`}
-              >
-                <option value="">Select group</option>
-                <option value="Family">Family</option>
-                <option value="Friends">Friends</option>
-                <option value="Work">Work</option>
-                <option value="VIP">VIP</option>
-              </select>
-              <select
-                value={qRsvp}
-                onChange={(e) => setQRsvp(e.target.value as RSVP | "")}
-                className={`md:col-span-1 ${selectCls} py-2.5 ${placeholderTone(qRsvp)}`}
-              >
-                <option value="">RSVP</option>
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Declined">Declined</option>
-              </select>
+            <div className="p-5 md:p-7 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Bride's Side</span>
+                <div className="mt-1.5">{numInput(estimates.bride, (v) => setEstimates((e) => ({ ...e, bride: v })), "e.g. 120")}</div>
+              </label>
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Groom's Side</span>
+                <div className="mt-1.5">{numInput(estimates.groom, (v) => setEstimates((e) => ({ ...e, groom: v })), "e.g. 120")}</div>
+              </label>
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Other Guests (optional)</span>
+                <div className="mt-1.5">{numInput(estimates.other, (v) => setEstimates((e) => ({ ...e, other: v })), "e.g. 20")}</div>
+              </label>
+            </div>
+            <div className="px-5 md:px-7 py-4 border-t border-border bg-surface-muted/50 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-muted-foreground">Estimated Total Guests</div>
+              <div className="font-serif text-2xl text-foreground tabular-nums">
+                <motion.span key={estimatesSum} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                  {estimatesSum}
+                </motion.span>
+              </div>
+            </div>
+            <div className="px-5 md:px-7 py-4 border-t border-border flex justify-center">
               <button
-                onClick={addGuest}
-                className="md:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all"
+                onClick={() => setMode(mode === "detailed" ? "basic" : "detailed")}
+                className="text-sm text-primary font-medium hover:underline"
               >
-                <Plus className="h-4 w-4" />
-                Add Guest
+                {mode === "detailed" ? "Hide Detailed Guest Planner" : "Switch to Detailed Guest Planner →"}
               </button>
             </div>
           </div>
         </Reveal>
 
-        {/* Filters */}
-        <Reveal delay={160}>
-          <div className="mt-8 flex flex-wrap gap-2">
-            {filters.map((f) => {
-              const active = filter === f;
-              return (
+        {/* Detailed mode: Export + Add Guest + List */}
+        <AnimatePresence initial={false}>
+          {mode === "detailed" && (
+            <motion.div
+              key="detailed"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-8"
+            >
+              {/* Export CSV — placed prominently between summary and Add Guest */}
+              <div className="flex justify-end">
                 <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all ${
-                    active
-                      ? "bg-foreground text-background border-foreground shadow-soft"
-                      : "bg-card text-foreground/70 border-border hover:border-primary hover:text-primary"
-                  }`}
+                  onClick={downloadCSV}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
                 >
-                  {f}
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
                 </button>
-              );
-            })}
-          </div>
-        </Reveal>
+              </div>
 
-        {/* Guest list — compact accordion */}
-        <Reveal delay={200}>
-          <div className="mt-5 bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 md:px-7 py-4 border-b border-border bg-surface-muted">
+              {/* Add Guest */}
+              <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+                <div className="px-5 md:px-7 py-4 border-b border-border bg-surface-muted">
+                  <h2 className="text-lg md:text-xl text-foreground">Add a guest</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Details you can refine later from the list.</p>
+                </div>
+                <div className="p-5 md:p-7 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <input
+                      type="text"
+                      value={qName}
+                      onChange={(e) => setQName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addGuest()}
+                      placeholder="Guest name"
+                      className={`md:col-span-4 ${inputCls}`}
+                    />
+                    <select
+                      value={qSide}
+                      onChange={(e) => setQSide(e.target.value as Side | "")}
+                      className={`md:col-span-2 ${selectCls}`}
+                    >
+                      <option value="">Side</option>
+                      <option value="Bride">Bride</option>
+                      <option value="Groom">Groom</option>
+                    </select>
+                    <select
+                      value={qGroup}
+                      onChange={(e) => setQGroup(e.target.value as Group | "")}
+                      className={`md:col-span-2 ${selectCls}`}
+                    >
+                      <option value="">Group</option>
+                      {GROUP_OPTIONS.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={qRsvp}
+                      onChange={(e) => setQRsvp(e.target.value as RSVP)}
+                      className={`md:col-span-2 ${selectCls}`}
+                    >
+                      {RSVP_OPTIONS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={addGuest}
+                      className="md:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div className="md:col-span-6 flex items-end gap-2">
+                      <label className="block flex-1">
+                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Meal Preference</span>
+                        <select
+                          value={qMeal}
+                          onChange={(e) => setQMeal(e.target.value as Meal)}
+                          className={`mt-1 w-full ${selectCls}`}
+                        >
+                          {MEAL_OPTIONS.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        onClick={applyMealToAll}
+                        className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                        title="Apply the selected meal to all existing guests and use as default for new ones"
+                      >
+                        Apply to All
+                      </button>
+                    </div>
+
+                    <div className="md:col-span-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Additional Guests</span>
+                        <button
+                          onClick={() => setQAddOn((v) => !v)}
+                          className={`inline-flex items-center h-5 w-9 rounded-full transition-colors ${qAddOn ? "bg-primary" : "bg-muted"}`}
+                          aria-pressed={qAddOn}
+                        >
+                          <span className={`h-4 w-4 rounded-full bg-background shadow transition-transform ${qAddOn ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </button>
+                      </div>
+                      {qAddOn && (
+                        <div className="mt-2">
+                          <Stepper value={qAddCount} onChange={setQAddCount} min={1} max={20} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest list — two columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <SideColumn
+                  title="Bride's Side"
+                  guests={brideSide}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  onUpdate={updateGuest}
+                  onRemove={removeGuest}
+                />
+                <SideColumn
+                  title="Groom's Side"
+                  guests={groomSide}
+                  expandedId={expandedId}
+                  setExpandedId={setExpandedId}
+                  onUpdate={updateGuest}
+                  onRemove={removeGuest}
+                />
+              </div>
+
+              {unassigned.length > 0 && (
+                <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+                  <div className="px-5 py-3 border-b border-border bg-surface-muted">
+                    <h3 className="text-sm text-foreground">Unassigned side</h3>
+                  </div>
+                  <ul className="divide-y divide-border/60">
+                    {unassigned.map((g) => (
+                      <GuestRow
+                        key={g.id}
+                        guest={g}
+                        open={expandedId === g.id}
+                        onToggle={() => setExpandedId(expandedId === g.id ? null : g.id)}
+                        onUpdate={updateGuest}
+                        onRemove={removeGuest}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Estimated Catering Cost */}
+        <Reveal delay={120}>
+          <div className="bg-card border border-border rounded-2xl shadow-card overflow-hidden">
+            <div className="px-6 md:px-8 py-6 border-b border-border bg-gradient-hero flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl md:text-2xl text-foreground">Your Guests</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Showing {visibleGuests.length} of {guests.length} guest{guests.length === 1 ? "" : "s"}
+                <h2 className="text-2xl md:text-3xl text-foreground">Estimated Catering Cost</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Linked with your Wedding Budget.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={sendInvites}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Send invites
-                </button>
-                <button
-                  onClick={sharePlan}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Share
-                </button>
-              </div>
-            </div>
-
-            {/* Accordion list (mobile + desktop) */}
-            <ul className="divide-y divide-border/60">
-              {visibleGuests.map((g) => {
-                const open = expandedId === g.id;
-                const rsvpDot =
-                  g.rsvp === "Confirmed"
-                    ? "bg-primary"
-                    : g.rsvp === "Declined"
-                    ? "bg-destructive"
-                    : "bg-secondary";
-                const tightSelect =
-                  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring";
-                const tightInput =
-                  "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring";
-                return (
-                  <li key={g.id} className="bg-card">
-                    <button
-                      onClick={() => setExpandedId(open ? null : g.id)}
-                      className="w-full flex items-center justify-between gap-3 px-4 md:px-6 py-2 text-left hover:bg-muted/30 transition-colors"
-                      aria-expanded={open}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`h-2 w-2 rounded-full ${rsvpDot}`} aria-hidden />
-                        <span className="text-sm text-foreground truncate">
-                          {g.name || "Unnamed guest"}
-                        </span>
-                        {g.plusOne && (
-                          <span className="text-[10px] uppercase tracking-wider text-primary bg-primary-soft px-1.5 py-0.5 rounded">
-                            +1
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-                      />
-                    </button>
-
-                    {open && (
-                      <div className="px-4 md:px-6 pb-3 pt-1 animate-fade-in border-t border-border/40">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-2 gap-y-2 mt-2">
-                          <label className="block col-span-2">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Name</span>
-                            <input
-                              type="text"
-                              value={g.name}
-                              onChange={(e) => updateGuest(g.id, { name: e.target.value })}
-                              className={`mt-0.5 ${tightInput}`}
-                            />
-                          </label>
-                          <label className="block col-span-2">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Mobile</span>
-                            <input
-                              type="tel"
-                              value={g.mobile}
-                              onChange={(e) => updateGuest(g.id, { mobile: e.target.value })}
-                              placeholder="Mobile number"
-                              className={`mt-0.5 ${tightInput}`}
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Side</span>
-                            <select
-                              value={g.side}
-                              onChange={(e) => updateGuest(g.id, { side: e.target.value as Side | "" })}
-                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.side)}`}
-                            >
-                              <option value="">Side</option>
-                              <option value="Bride">Bride</option>
-                              <option value="Groom">Groom</option>
-                            </select>
-                          </label>
-                          <label className="block">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</span>
-                            <select
-                              value={g.group}
-                              onChange={(e) => updateGuest(g.id, { group: e.target.value as Group | "" })}
-                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.group)}`}
-                            >
-                              <option value="">Group</option>
-                              <option value="Family">Family</option>
-                              <option value="Friends">Friends</option>
-                              <option value="Work">Work</option>
-                              <option value="VIP">VIP</option>
-                            </select>
-                          </label>
-                          <label className="block">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">RSVP</span>
-                            <select
-                              value={g.rsvp}
-                              onChange={(e) => updateGuest(g.id, { rsvp: e.target.value as RSVP | "" })}
-                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.rsvp)}`}
-                            >
-                              <option value="">RSVP</option>
-                              <option value="Pending">Pending</option>
-                              <option value="Confirmed">Confirmed</option>
-                              <option value="Declined">Declined</option>
-                            </select>
-                          </label>
-                          <label className="block">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Invite</span>
-                            <select
-                              value={g.invite}
-                              onChange={(e) => updateGuest(g.id, { invite: e.target.value as Invite | "" })}
-                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.invite)}`}
-                            >
-                              <option value="">Invite</option>
-                              <option value="Not Invited">Not Invited</option>
-                              <option value="Invited">Invited</option>
-                              <option value="RSVP Received">RSVP Received</option>
-                            </select>
-                          </label>
-                          <label className="block">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Meal</span>
-                            <select
-                              value={g.meal}
-                              onChange={(e) => updateGuest(g.id, { meal: e.target.value as Meal | "" })}
-                              className={`mt-0.5 ${tightSelect} ${placeholderTone(g.meal)}`}
-                            >
-                              <option value="">Meal</option>
-                              <option value="Veg">Veg</option>
-                              <option value="Non-Veg">Non-Veg</option>
-                            </select>
-                          </label>
-                          <label className="flex items-center justify-between rounded-md border border-input bg-background px-2 py-1.5 mt-[16px] col-span-2 md:col-span-1">
-                            <span className="text-[11px] text-foreground">Plus one</span>
-                            <button
-                              onClick={() => updateGuest(g.id, { plusOne: !g.plusOne })}
-                              className={`inline-flex items-center justify-center h-5 w-9 rounded-full transition-colors ${
-                                g.plusOne ? "bg-primary" : "bg-muted"
-                              }`}
-                              aria-pressed={g.plusOne}
-                            >
-                              <span
-                                className={`h-4 w-4 rounded-full bg-background shadow transition-transform ${
-                                  g.plusOne ? "translate-x-2" : "-translate-x-2"
-                                }`}
-                              />
-                            </button>
-                          </label>
-                          <label className="block col-span-2 md:col-span-4">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</span>
-                            <input
-                              type="text"
-                              value={g.notes}
-                              onChange={(e) => updateGuest(g.id, { notes: e.target.value })}
-                              placeholder="Allergies, seating, etc."
-                              className={`mt-0.5 ${tightInput}`}
-                            />
-                          </label>
-                        </div>
-                        <div className="mt-2 flex justify-end">
-                          <button
-                            onClick={() => removeGuest(g.id)}
-                            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-              {visibleGuests.length === 0 && (
-                <li className="px-5 py-10 text-center text-sm text-muted-foreground">
-                  {guests.length === 0
-                    ? "Your guest list is empty. Add your first guest above."
-                    : "No guests match this filter."}
-                </li>
+              {cateringLocked && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft text-primary px-3 py-1 text-xs font-medium">
+                  <Lock className="h-3 w-3" />
+                  Catering locked
+                </span>
               )}
-            </ul>
-          </div>
-        </Reveal>
-
-        {/* Recently invited summary */}
-        {invitedRecently.length > 0 && (
-          <Reveal delay={80}>
-            <div className="mt-6 bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
-              <div className="px-5 md:px-7 py-4 border-b border-border bg-primary-soft/40 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm md:text-base text-foreground font-medium">
-                    Invites sent successfully to selected guests
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setInvitedRecently([])}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Dismiss
-                </button>
-              </div>
-              <ul className="divide-y divide-border/60">
-                {invitedRecently.map((g) => (
-                  <li key={g.id} className="flex items-center justify-between px-5 md:px-7 py-2.5 text-sm">
-                    <span className="text-foreground">{g.name}</span>
-                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      {g.mobile}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-        )}
-
-        {/* Catering cost + CTA */}
-        <Reveal delay={240}>
-          <div className="mt-10 bg-card border border-border rounded-2xl shadow-card overflow-hidden">
-            <div className="px-6 md:px-8 py-6 border-b border-border bg-gradient-hero">
-              <h2 className="text-2xl md:text-3xl text-foreground">Estimated Catering Cost</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Based on your confirmed guests and average cost per plate.
-              </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
               <div className="p-6 md:p-8">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Confirmed Guests</p>
-                <p className="mt-2 text-2xl md:text-3xl font-serif text-foreground">{counts.confirmed}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Guests</p>
+                <p className="mt-2 text-2xl md:text-3xl font-serif text-foreground">{total}</p>
               </div>
               <div className="p-6 md:p-8">
                 <label className="block">
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                    Avg. cost per plate (₹)
+                    Cost per plate (₹)
                   </span>
                   <input
                     type="number"
@@ -692,25 +782,31 @@ const GuestPlanner = () => {
                     min={0}
                     value={perPlate}
                     onChange={(e) => setPerPlate(e.target.value === "" ? "" : Number(e.target.value))}
-                    onBlur={() => void persist(guests, perPlate)}
-                    placeholder="e.g. 800"
-                    className="mt-2 w-full max-w-[180px] rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder={suggestedPerPlate ? `Suggested: ${suggestedPerPlate}` : "e.g. 1200"}
+                    className="mt-2 w-full max-w-[200px] rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </label>
+                {suggestedPerPlate != null && (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    From your Wedding Budget: ~{inr(suggestedPerPlate)}/plate
+                  </p>
+                )}
               </div>
               <div className="p-6 md:p-8">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">Estimated Total</p>
-                <p className="mt-2 text-2xl md:text-3xl font-serif text-primary">{inr(cateringCost)}</p>
+                <p className="mt-2 text-2xl md:text-3xl font-serif text-primary tabular-nums">{inr(cateringCost)}</p>
               </div>
             </div>
             <div className="px-6 md:px-8 py-5 border-t border-border flex flex-wrap gap-3 justify-end">
-              <button
-                onClick={downloadCSV}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                Export CSV
-              </button>
+              {budget && Number(perPlate) > 0 && total > 0 && (
+                <button
+                  onClick={applyCateringToBudget}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary text-primary bg-primary-soft/40 px-5 py-2.5 text-sm font-medium hover:shadow-elegant transition-all"
+                >
+                  <Wallet className="h-4 w-4" />
+                  Sync to Wedding Budget
+                </button>
+              )}
               <Link
                 to="/services/catering"
                 className="group inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all duration-300"
@@ -723,6 +819,293 @@ const GuestPlanner = () => {
         </Reveal>
       </section>
     </div>
+  );
+};
+
+// ---------- Sub-components ----------
+
+const EditableCounter = ({
+  label,
+  value,
+  icon: Icon,
+  accent,
+  onChange,
+  onClear,
+  manual,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  accent: string;
+  onChange: (n: number) => void;
+  onClear: () => void;
+  manual: boolean;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  return (
+    <div className="bg-card border border-border rounded-2xl shadow-soft p-4 md:p-5 hover:shadow-elegant transition-shadow">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1">
+          {manual && (
+            <button
+              onClick={onClear}
+              className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+              title="Reset to auto"
+            >
+              Auto
+            </button>
+          )}
+          <Icon className={`h-4 w-4 ${accent}`} />
+        </div>
+      </div>
+      {editing ? (
+        <input
+          autoFocus
+          type="number"
+          inputMode="numeric"
+          min={0}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            setEditing(false);
+            const n = Number(draft);
+            if (Number.isFinite(n) && n >= 0) onChange(n);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+          className="mt-2 w-full bg-transparent font-serif text-2xl md:text-3xl text-foreground focus:outline-none tabular-nums"
+        />
+      ) : (
+        <button
+          onClick={() => {
+            setDraft(String(value));
+            setEditing(true);
+          }}
+          className={`mt-2 text-2xl md:text-3xl font-serif ${accent} tabular-nums w-full text-left inline-flex items-center gap-2 group`}
+        >
+          <motion.span key={value} initial={{ scale: 0.9, opacity: 0.5 }} animate={{ scale: 1, opacity: 1 }}>
+            {value}
+          </motion.span>
+          <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      )}
+    </div>
+  );
+};
+
+const Stepper = ({
+  value,
+  onChange,
+  min = 0,
+  max = 20,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+}) => (
+  <div className="inline-flex items-center gap-1 rounded-md border border-input bg-background overflow-hidden">
+    <button
+      onClick={() => onChange(Math.max(min, value - 1))}
+      className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      aria-label="Decrease"
+    >
+      <Minus className="h-3.5 w-3.5" />
+    </button>
+    <input
+      type="number"
+      value={value}
+      onChange={(e) => {
+        const n = Number(e.target.value);
+        if (Number.isFinite(n)) onChange(Math.min(max, Math.max(min, n)));
+      }}
+      className="w-12 bg-transparent text-center text-sm tabular-nums focus:outline-none"
+    />
+    <button
+      onClick={() => onChange(Math.min(max, value + 1))}
+      className="px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      aria-label="Increase"
+    >
+      <Plus className="h-3.5 w-3.5" />
+    </button>
+  </div>
+);
+
+const SideColumn = ({
+  title,
+  guests,
+  expandedId,
+  setExpandedId,
+  onUpdate,
+  onRemove,
+}: {
+  title: string;
+  guests: Guest[];
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  onUpdate: (id: string, patch: Partial<Guest>) => void;
+  onRemove: (id: string) => void;
+}) => (
+  <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+    <div className="px-5 py-3 border-b border-border bg-surface-muted flex items-center justify-between">
+      <h3 className="text-sm md:text-base text-foreground">{title}</h3>
+      <span className="text-[11px] text-muted-foreground tabular-nums">
+        {guests.reduce((s, g) => s + 1 + (g.additionalGuests || 0), 0)} people
+      </span>
+    </div>
+    <ul className="divide-y divide-border/60">
+      {guests.length === 0 ? (
+        <li className="px-5 py-8 text-center text-xs text-muted-foreground">
+          No guests yet on this side.
+        </li>
+      ) : (
+        guests.map((g) => (
+          <GuestRow
+            key={g.id}
+            guest={g}
+            open={expandedId === g.id}
+            onToggle={() => setExpandedId(expandedId === g.id ? null : g.id)}
+            onUpdate={onUpdate}
+            onRemove={onRemove}
+          />
+        ))
+      )}
+    </ul>
+  </div>
+);
+
+const GuestRow = ({
+  guest,
+  open,
+  onToggle,
+  onUpdate,
+  onRemove,
+}: {
+  guest: Guest;
+  open: boolean;
+  onToggle: () => void;
+  onUpdate: (id: string, patch: Partial<Guest>) => void;
+  onRemove: (id: string) => void;
+}) => {
+  const rsvpDot = guest.rsvp === "Confirmed" ? "bg-primary" : "bg-secondary";
+  const tightSelect =
+    "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring";
+  const tightInput =
+    "w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring";
+  return (
+    <li className="bg-card">
+      <div className="w-full flex items-center gap-3 px-4 md:px-5 py-2">
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-2.5 min-w-0 text-left"
+          aria-expanded={open}
+        >
+          <span className={`h-2 w-2 rounded-full ${rsvpDot}`} aria-hidden />
+          <span className="text-sm text-foreground truncate">{guest.name || "Unnamed guest"}</span>
+          {guest.additionalGuests > 0 && (
+            <span className="text-[10px] uppercase tracking-wider text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+              +{guest.additionalGuests}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => onRemove(guest.id)}
+          aria-label="Remove guest"
+          className="text-muted-foreground hover:text-destructive transition-colors p-1"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={onToggle} aria-label="Expand" className="p-1">
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-border/40"
+          >
+            <div className="px-4 md:px-5 py-3 grid grid-cols-2 gap-x-2 gap-y-2">
+              <label className="block col-span-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Name</span>
+                <input
+                  type="text"
+                  value={guest.name}
+                  onChange={(e) => onUpdate(guest.id, { name: e.target.value })}
+                  className={`mt-0.5 ${tightInput}`}
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Side</span>
+                <select
+                  value={guest.side}
+                  onChange={(e) => onUpdate(guest.id, { side: e.target.value as Side | "" })}
+                  className={`mt-0.5 ${tightSelect}`}
+                >
+                  <option value="">—</option>
+                  <option value="Bride">Bride</option>
+                  <option value="Groom">Groom</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Group</span>
+                <select
+                  value={guest.group}
+                  onChange={(e) => onUpdate(guest.id, { group: e.target.value as Group | "" })}
+                  className={`mt-0.5 ${tightSelect}`}
+                >
+                  <option value="">—</option>
+                  {GROUP_OPTIONS.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">RSVP</span>
+                <select
+                  value={guest.rsvp}
+                  onChange={(e) => onUpdate(guest.id, { rsvp: e.target.value as RSVP })}
+                  className={`mt-0.5 ${tightSelect}`}
+                >
+                  {RSVP_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Meal</span>
+                <select
+                  value={guest.meal}
+                  onChange={(e) => onUpdate(guest.id, { meal: e.target.value as Meal })}
+                  className={`mt-0.5 ${tightSelect}`}
+                >
+                  {MEAL_OPTIONS.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block col-span-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Additional Guests</span>
+                <div className="mt-1">
+                  <Stepper
+                    value={guest.additionalGuests}
+                    onChange={(v) => onUpdate(guest.id, { additionalGuests: v })}
+                    min={0}
+                    max={20}
+                  />
+                </div>
+              </label>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </li>
   );
 };
 
