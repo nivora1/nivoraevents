@@ -18,6 +18,7 @@ import {
   Sparkles,
   Wallet,
   Pencil,
+  Lock,
 } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { DataPersistenceBanner } from "@/components/DataPersistenceBanner";
