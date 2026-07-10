@@ -427,7 +427,9 @@ const BudgetPlanner = () => {
     const { key, newAlloc } = pending;
     setCategories((prev) => {
       const withChange = prev.map((c) =>
-        c.key === key ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) } : c
+        c.key === key
+          ? { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc), locked: c.key === "catering" ? true : c.locked }
+          : c,
       );
       return redistributeKeepingTotal(withChange, key, totalBudget);
     });
