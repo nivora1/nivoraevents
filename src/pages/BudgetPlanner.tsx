@@ -629,7 +629,15 @@ const BudgetPlanner = () => {
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h2 className="text-base md:text-lg text-foreground truncate">{c.title}</h2>
+                          <h2 className="text-base md:text-lg text-foreground truncate inline-flex items-center gap-2">
+                            {c.title}
+                            {c.locked && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft text-primary px-2 py-0.5 text-[10px] font-medium">
+                                <Lock className="h-2.5 w-2.5" />
+                                Locked
+                              </span>
+                            )}
+                          </h2>
                           <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                             <AnimatedNumber value={c.allocated} /> · {pctOfTotal.toFixed(0)}% of total
                           </p>
