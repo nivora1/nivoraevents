@@ -52,9 +52,10 @@ type Category = {
   pct: number; // recommended baseline percentage
   allocated: number; // current allocation in INR
   items: Item[];
+  locked?: boolean;
 };
 
-type StoredShape = { totalBudget: number; categories: Category[] };
+type StoredShape = { totalBudget: number; categories: Category[]; lockedGuestCount?: number };
 
 // ---------- Presets ----------
 
