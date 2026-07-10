@@ -308,6 +308,7 @@ const BudgetPlanner = () => {
             });
             setTotalBudget(shape.totalBudget);
             setCategories(rehydrated);
+            setLockedGuestCount(shape.lockedGuestCount);
             setStep("planner");
           }
         }
