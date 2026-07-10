@@ -201,23 +201,32 @@ const redistributeKeepingTotal = (
   newTotal: number
 ): Category[] => {
   const changed = cats.find((c) => c.key === changedKey)!;
-  const remainingBudget = Math.max(0, newTotal - changed.allocated);
-  const others = cats.filter((c) => c.key !== changedKey);
+  const lockedElsewhere = cats
+    .filter((c) => c.key !== changedKey && c.locked)
+    .reduce((s, c) => s + c.allocated, 0);
+  const remainingBudget = Math.max(0, newTotal - changed.allocated - lockedElsewhere);
+  const others = cats.filter((c) => c.key !== changedKey && !c.locked);
   const othersSum = others.reduce((s, c) => s + c.allocated, 0);
   return cats.map((c) => {
-    if (c.key === changedKey) return c;
-    const share = othersSum > 0 ? c.allocated / othersSum : 1 / others.length;
+    if (c.key === changedKey || c.locked) return c;
+    const share = othersSum > 0 ? c.allocated / othersSum : 1 / Math.max(1, others.length);
     const newAlloc = roundClean(remainingBudget * share);
     return { ...c, allocated: newAlloc, items: scaleItems(c.items, c.allocated, newAlloc) };
   });
 };
 
-// Scale total-budget uniformly by category pct.
-const rescaleAllToTotal = (cats: Category[], newTotal: number): Category[] =>
-  cats.map((c) => {
-    const alloc = roundClean((newTotal * c.pct) / 100);
+// Scale total-budget uniformly by category pct (locked categories keep their allocation).
+const rescaleAllToTotal = (cats: Category[], newTotal: number): Category[] => {
+  const lockedSum = cats.filter((c) => c.locked).reduce((s, c) => s + c.allocated, 0);
+  const remaining = Math.max(0, newTotal - lockedSum);
+  const unlockedPctSum = cats.filter((c) => !c.locked).reduce((s, c) => s + c.pct, 0);
+  return cats.map((c) => {
+    if (c.locked) return c;
+    const share = unlockedPctSum > 0 ? c.pct / unlockedPctSum : 0;
+    const alloc = roundClean(remaining * share);
     return { ...c, allocated: alloc, items: scaleItems(c.items, c.allocated, alloc) };
   });
+};
 
 const scaleItems = (items: Item[], oldTotal: number, newTotal: number): Item[] => {
   if (items.length === 0) return items;
