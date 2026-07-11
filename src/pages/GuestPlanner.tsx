@@ -486,24 +486,8 @@ const GuestPlanner = () => {
       </section>
 
       <section className="container-narrow -mt-8 md:-mt-10 space-y-8">
-        {/* Summary counters (3) — editable Total & Confirmed */}
-        <Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
-            <EditableCounter
-              label="Total Guests"
-              value={total}
-              icon={Users}
-              accent="text-foreground"
-              onChange={(v) => setManualTotal(v)}
-              onClear={() => setManualTotal(null)}
-              manual={manualTotal != null}
-            />
-            <EditableCounter
-              label="Confirmed"
-              value={confirmed}
-              icon={CheckCircle2}
-              accent="text-primary"
         {/* Estimated Guest Counter — manual planning numbers */}
+
         <Reveal>
           <div className="flex items-baseline justify-between mb-3">
             <div>
