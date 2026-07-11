@@ -643,7 +643,63 @@ const GuestPlanner = () => {
               transition={{ duration: 0.25 }}
               className="space-y-8"
             >
-              {/* Export CSV — placed prominently between summary and Add Guest */}
+              {/* Detailed Guest Counter — auto-calculated from the guest list */}
+              <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+                <div className="px-5 md:px-7 py-4 border-b border-border bg-surface-muted flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg md:text-xl text-foreground">Detailed Guest Counter</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Auto-calculated from your guest list. Includes additional guests.
+                    </p>
+                  </div>
+                  <button
+                    onClick={useDetailedForPlanning}
+                    disabled={detailedTotal === 0}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-2 text-xs font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    title="Replace the Estimated Guest Counter with these detailed numbers"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Use for Planning
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 divide-x divide-border">
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Total</span>
+                      <Users className="h-4 w-4 text-foreground" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-foreground tabular-nums">
+                      <motion.span key={detailedTotal} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedTotal}
+                      </motion.span>
+                    </p>
+                  </div>
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Confirmed</span>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-primary tabular-nums">
+                      <motion.span key={detailedConfirmed} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedConfirmed}
+                      </motion.span>
+                    </p>
+                  </div>
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Pending</span>
+                      <Clock className="h-4 w-4 text-secondary" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-secondary tabular-nums">
+                      <motion.span key={detailedPending} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedPending}
+                      </motion.span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Export CSV */}
               <div className="flex justify-end">
                 <button
                   onClick={downloadCSV}
@@ -653,6 +709,7 @@ const GuestPlanner = () => {
                   Export CSV
                 </button>
               </div>
+
 
               {/* Add Guest */}
               <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
