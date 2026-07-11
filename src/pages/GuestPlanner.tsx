@@ -242,9 +242,18 @@ const GuestPlanner = () => {
     [guests],
   );
 
-  const total = manualTotal ?? (mode === "detailed" ? detailedTotal : estimatesSum);
-  const confirmed = manualConfirmed ?? (mode === "detailed" ? detailedConfirmed : total);
+  // Estimated Guest Counter (top summary) — driven by manual estimates only.
+  // Detailed counts are shown separately inside the Detailed Guest Planner.
+  const total = manualTotal ?? estimatesSum;
+  const confirmed = manualConfirmed ?? estimatesSum;
   const pending = Math.max(0, total - confirmed);
+  const detailedPending = Math.max(0, detailedTotal - detailedConfirmed);
+
+  const useDetailedForPlanning = () => {
+    setManualTotal(detailedTotal);
+    setManualConfirmed(detailedConfirmed);
+    toast.success("Detailed counts applied to your planning numbers");
+  };
 
   const brideSide = useMemo(() => guests.filter((g) => g.side === "Bride"), [guests]);
   const groomSide = useMemo(() => guests.filter((g) => g.side === "Groom"), [guests]);
@@ -477,8 +486,18 @@ const GuestPlanner = () => {
       </section>
 
       <section className="container-narrow -mt-8 md:-mt-10 space-y-8">
-        {/* Summary counters (3) — editable Total & Confirmed */}
+        {/* Estimated Guest Counter — manual planning numbers */}
+
         <Reveal>
+          <div className="flex items-baseline justify-between mb-3">
+            <div>
+              <h2 className="text-lg md:text-xl text-foreground">Estimated Guest Counter</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Your planning numbers used across Nivora. Edit any card, or apply the detailed counts below.
+              </p>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Planning</span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
             <EditableCounter
               label="Total Guests"
@@ -508,6 +527,7 @@ const GuestPlanner = () => {
             </div>
           </div>
         </Reveal>
+
 
         {/* Guest drift banner */}
         <AnimatePresence>
@@ -576,16 +596,41 @@ const GuestPlanner = () => {
                 </motion.span>
               </div>
             </div>
-            <div className="px-5 md:px-7 py-4 border-t border-border flex justify-center">
-              <button
-                onClick={() => setMode(mode === "detailed" ? "basic" : "detailed")}
-                className="text-sm text-primary font-medium hover:underline"
-              >
-                {mode === "detailed" ? "Hide Detailed Guest Planner" : "Switch to Detailed Guest Planner →"}
-              </button>
-            </div>
           </div>
         </Reveal>
+
+        {/* Toggle: Show/Hide Detailed Guest Planner (premium card button) */}
+        <Reveal delay={100}>
+          <button
+            onClick={() => setMode(mode === "detailed" ? "basic" : "detailed")}
+            className="group w-full bg-card border border-border hover:border-primary/60 rounded-2xl shadow-soft hover:shadow-elegant transition-all px-5 md:px-7 py-4 flex items-center justify-between text-left"
+            aria-expanded={mode === "detailed"}
+          >
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <Users className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm md:text-base text-foreground font-medium">
+                  {mode === "detailed" ? "Hide Detailed Guest Planner" : "Show Detailed Guest Planner"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Manage individual guests, sides, meals and RSVPs.
+                </p>
+              </div>
+            </div>
+            <motion.span
+              animate={{ rotate: mode === "detailed" ? 180 : 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-muted-foreground group-hover:text-primary transition-colors"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </motion.span>
+          </button>
+        </Reveal>
+
+
+
 
         {/* Detailed mode: Export + Add Guest + List */}
         <AnimatePresence initial={false}>
@@ -598,7 +643,63 @@ const GuestPlanner = () => {
               transition={{ duration: 0.25 }}
               className="space-y-8"
             >
-              {/* Export CSV — placed prominently between summary and Add Guest */}
+              {/* Detailed Guest Counter — auto-calculated from the guest list */}
+              <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
+                <div className="px-5 md:px-7 py-4 border-b border-border bg-surface-muted flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg md:text-xl text-foreground">Detailed Guest Counter</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Auto-calculated from your guest list. Includes additional guests.
+                    </p>
+                  </div>
+                  <button
+                    onClick={useDetailedForPlanning}
+                    disabled={detailedTotal === 0}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-2 text-xs font-medium shadow-soft hover:shadow-elegant hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                    title="Replace the Estimated Guest Counter with these detailed numbers"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Use for Planning
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 divide-x divide-border">
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Total</span>
+                      <Users className="h-4 w-4 text-foreground" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-foreground tabular-nums">
+                      <motion.span key={detailedTotal} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedTotal}
+                      </motion.span>
+                    </p>
+                  </div>
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Confirmed</span>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-primary tabular-nums">
+                      <motion.span key={detailedConfirmed} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedConfirmed}
+                      </motion.span>
+                    </p>
+                  </div>
+                  <div className="p-4 md:p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Pending</span>
+                      <Clock className="h-4 w-4 text-secondary" />
+                    </div>
+                    <p className="mt-2 text-2xl md:text-3xl font-serif text-secondary tabular-nums">
+                      <motion.span key={detailedPending} initial={{ scale: 0.95, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}>
+                        {detailedPending}
+                      </motion.span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Export CSV */}
               <div className="flex justify-end">
                 <button
                   onClick={downloadCSV}
@@ -608,6 +709,7 @@ const GuestPlanner = () => {
                   Export CSV
                 </button>
               </div>
+
 
               {/* Add Guest */}
               <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
@@ -686,16 +788,18 @@ const GuestPlanner = () => {
                     </div>
 
                     <div className="md:col-span-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
                         <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Additional Guests</span>
                         <button
                           onClick={() => setQAddOn((v) => !v)}
                           className={`inline-flex items-center h-5 w-9 rounded-full transition-colors ${qAddOn ? "bg-primary" : "bg-muted"}`}
                           aria-pressed={qAddOn}
+                          aria-label="Toggle additional guests"
                         >
                           <span className={`h-4 w-4 rounded-full bg-background shadow transition-transform ${qAddOn ? "translate-x-4" : "translate-x-0.5"}`} />
                         </button>
                       </div>
+
                       {qAddOn && (
                         <div className="mt-2">
                           <Stepper value={qAddCount} onChange={setQAddCount} min={1} max={20} />
