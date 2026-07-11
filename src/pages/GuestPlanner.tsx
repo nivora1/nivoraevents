@@ -629,11 +629,8 @@ const GuestPlanner = () => {
           </button>
         </Reveal>
 
-        {/* placeholder-closed */}
-        <div className="hidden">
 
-          </div>
-        </Reveal>
+
 
         {/* Detailed mode: Export + Add Guest + List */}
         <AnimatePresence initial={false}>
