@@ -242,9 +242,18 @@ const GuestPlanner = () => {
     [guests],
   );
 
-  const total = manualTotal ?? (mode === "detailed" ? detailedTotal : estimatesSum);
-  const confirmed = manualConfirmed ?? (mode === "detailed" ? detailedConfirmed : total);
+  // Estimated Guest Counter (top summary) — driven by manual estimates only.
+  // Detailed counts are shown separately inside the Detailed Guest Planner.
+  const total = manualTotal ?? estimatesSum;
+  const confirmed = manualConfirmed ?? estimatesSum;
   const pending = Math.max(0, total - confirmed);
+  const detailedPending = Math.max(0, detailedTotal - detailedConfirmed);
+
+  const useDetailedForPlanning = () => {
+    setManualTotal(detailedTotal);
+    setManualConfirmed(detailedConfirmed);
+    toast.success("Detailed counts applied to your planning numbers");
+  };
 
   const brideSide = useMemo(() => guests.filter((g) => g.side === "Bride"), [guests]);
   const groomSide = useMemo(() => guests.filter((g) => g.side === "Groom"), [guests]);
