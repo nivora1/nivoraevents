@@ -596,14 +596,42 @@ const GuestPlanner = () => {
                 </motion.span>
               </div>
             </div>
-            <div className="px-5 md:px-7 py-4 border-t border-border flex justify-center">
-              <button
-                onClick={() => setMode(mode === "detailed" ? "basic" : "detailed")}
-                className="text-sm text-primary font-medium hover:underline"
-              >
-                {mode === "detailed" ? "Hide Detailed Guest Planner" : "Switch to Detailed Guest Planner →"}
-              </button>
+          </div>
+        </Reveal>
+
+        {/* Toggle: Show/Hide Detailed Guest Planner (premium card button) */}
+        <Reveal delay={100}>
+          <button
+            onClick={() => setMode(mode === "detailed" ? "basic" : "detailed")}
+            className="group w-full bg-card border border-border hover:border-primary/60 rounded-2xl shadow-soft hover:shadow-elegant transition-all px-5 md:px-7 py-4 flex items-center justify-between text-left"
+            aria-expanded={mode === "detailed"}
+          >
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <Users className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm md:text-base text-foreground font-medium">
+                  {mode === "detailed" ? "Hide Detailed Guest Planner" : "Show Detailed Guest Planner"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Manage individual guests, sides, meals and RSVPs.
+                </p>
+              </div>
             </div>
+            <motion.span
+              animate={{ rotate: mode === "detailed" ? 180 : 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-muted-foreground group-hover:text-primary transition-colors"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </motion.span>
+          </button>
+        </Reveal>
+
+        {/* placeholder-closed */}
+        <div className="hidden">
+
           </div>
         </Reveal>
 
