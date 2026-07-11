@@ -788,16 +788,18 @@ const GuestPlanner = () => {
                     </div>
 
                     <div className="md:col-span-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
                         <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Additional Guests</span>
                         <button
                           onClick={() => setQAddOn((v) => !v)}
                           className={`inline-flex items-center h-5 w-9 rounded-full transition-colors ${qAddOn ? "bg-primary" : "bg-muted"}`}
                           aria-pressed={qAddOn}
+                          aria-label="Toggle additional guests"
                         >
                           <span className={`h-4 w-4 rounded-full bg-background shadow transition-transform ${qAddOn ? "translate-x-4" : "translate-x-0.5"}`} />
                         </button>
                       </div>
+
                       {qAddOn && (
                         <div className="mt-2">
                           <Stepper value={qAddCount} onChange={setQAddCount} min={1} max={20} />
