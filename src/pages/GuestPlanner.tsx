@@ -503,6 +503,32 @@ const GuestPlanner = () => {
               value={confirmed}
               icon={CheckCircle2}
               accent="text-primary"
+        {/* Estimated Guest Counter — manual planning numbers */}
+        <Reveal>
+          <div className="flex items-baseline justify-between mb-3">
+            <div>
+              <h2 className="text-lg md:text-xl text-foreground">Estimated Guest Counter</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Your planning numbers used across Nivora. Edit any card, or apply the detailed counts below.
+              </p>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Planning</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+            <EditableCounter
+              label="Total Guests"
+              value={total}
+              icon={Users}
+              accent="text-foreground"
+              onChange={(v) => setManualTotal(v)}
+              onClear={() => setManualTotal(null)}
+              manual={manualTotal != null}
+            />
+            <EditableCounter
+              label="Confirmed"
+              value={confirmed}
+              icon={CheckCircle2}
+              accent="text-primary"
               onChange={(v) => setManualConfirmed(v)}
               onClear={() => setManualConfirmed(null)}
               manual={manualConfirmed != null}
@@ -517,6 +543,7 @@ const GuestPlanner = () => {
             </div>
           </div>
         </Reveal>
+
 
         {/* Guest drift banner */}
         <AnimatePresence>
